@@ -4,6 +4,7 @@ import {
   BookOpen,
   Calculator,
   ClipboardList,
+  FileSpreadsheet,
   Library,
   Loader2,
   Plus,
@@ -13,6 +14,7 @@ import {
   Trash2,
   Utensils,
 } from 'lucide-react';
+import costLibraryCsv from '../Freedom_Bowls_Catering_Calc - Cost Library.csv?raw';
 import { hasSupabaseConfig, supabase } from './lib/supabase';
 import type { Tables, TablesInsert, TablesUpdate } from './lib/database.types';
 import {
@@ -32,7 +34,15 @@ type MenuItemComponent = Tables<'menu_item_components'> & {
   recipes: Recipe | null;
   ingredients: Ingredient | null;
 };
-type Tab = 'ingredients' | 'builder' | 'costs' | 'menu' | 'prep' | 'events';
+type Tab = 'ingredients' | 'builder' | 'costs' | 'menu' | 'prep' | 'events' | 'assumptions';
+type CostLibraryRow = {
+  Category: string;
+  'Data Point': string;
+  'Default Value': string;
+  Unit: string;
+  'Recommended Source': string;
+  Notes: string;
+};
 
 type IngredientForm = {
   id?: string;
@@ -126,12 +136,61 @@ const tabs: { id: Tab; label: string; icon: typeof Library }[] = [
   { id: 'menu', label: 'Menu Items', icon: Utensils },
   { id: 'prep', label: 'Prep Planner', icon: ClipboardList },
   { id: 'events', label: 'Events & Revenue', icon: TrendingUp },
+  { id: 'assumptions', label: 'Cost Library', icon: FileSpreadsheet },
 ];
+
+const costLibraryRows = parseCostLibraryCsv(costLibraryCsv);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const toNumber = (value: string) => Number(value || 0);
 const toNullableNumber = (value: string) => (value.trim() ? Number(value) : null);
+
+function parseCostLibraryCsv(csv: string): CostLibraryRow[] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+
+  for (let index = 0; index < csv.length; index += 1) {
+    const char = csv[index];
+    const next = csv[index + 1];
+
+    if (quoted) {
+      if (char === '"' && next === '"') {
+        cell += '"';
+        index += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        cell += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (char === '\n') {
+      row.push(cell.replace(/\r$/, ''));
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += char;
+    }
+  }
+
+  if (cell || row.length) row.push(cell.replace(/\r$/, ''));
+  if (row.length) rows.push(row);
+
+  const [headers, ...body] = rows.filter((candidate) =>
+    candidate.some((value) => value.trim() !== ''),
+  );
+
+  return body.map((candidate) =>
+    Object.fromEntries(headers.map((header, index) => [header.trim(), candidate[index]?.trim() ?? ''])) as CostLibraryRow,
+  );
+}
 
 const computeMenuItemCost = (
   components: MenuItemComponent[],
@@ -558,6 +617,8 @@ export function App() {
           {activeTab === 'prep' && <PrepPlanner recipes={recipes} />}
 
           {activeTab === 'events' && <EventsRevenue />}
+
+          {activeTab === 'assumptions' && <CostLibraryAssumptions rows={costLibraryRows} />}
         </>
       )}
     </main>
@@ -1599,6 +1660,57 @@ function EventsRevenue() {
           Break-even typically at 130–180 events depending on your cost structure.
         </p>
       </section>
+    </div>
+  );
+}
+
+// ── Cost Library Assumptions ─────────────────────────────────────────────────
+
+function CostLibraryAssumptions({ rows }: { rows: CostLibraryRow[] }) {
+  const categories = [...new Set(rows.map((row) => row.Category).filter(Boolean))];
+
+  return (
+    <div className="assumptions-grid">
+      {categories.map((category) => {
+        const categoryRows = rows.filter((row) => row.Category === category);
+
+        return (
+          <section className="panel" key={category}>
+            <div className="panel-heading">
+              <div>
+                <h2>{category}</h2>
+                <p className="muted" style={{ margin: 0 }}>
+                  {categoryRows.length} worksheet assumptions
+                </p>
+              </div>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data point</th>
+                    <th>Default</th>
+                    <th>Unit</th>
+                    <th>Source</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categoryRows.map((row) => (
+                    <tr key={`${category}-${row['Data Point']}`}>
+                      <td>{row['Data Point']}</td>
+                      <td>{row['Default Value'] || '—'}</td>
+                      <td>{row.Unit || '—'}</td>
+                      <td>{row['Recommended Source'] || '—'}</td>
+                      <td>{row.Notes || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

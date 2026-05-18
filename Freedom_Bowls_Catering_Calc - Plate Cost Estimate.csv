@@ -1,0 +1,30 @@
+Plate Cost Estimate,,"Food Cost Max%
+","Food Cost Min%
+",,,,
+Suggested Price,$11.79 – $15.09,16.00%,12.50%,,,,
+Food cost per bowl (ex packaging),$1.49,,,,,,
+Packaging per bowl,$0.40,,,,,,
+Food + packaging cost per bowl,$1.89,,,,,,
+How to use:,Pick a menu item from the dropdown in cell B7. The table and cost totals update automatically; no other input is needed.,,,,,,
+Menu item,Smoky BBQ + Crema (Pork) — with Corn Salsa,,,,,,
+Component,Ingredient / Input,Portion per Bowl,Portion Unit,Cost Unit,Cost per Unit,Cost per Bowl,Notes
+Component,Ingredient / Input,Portion per Bowl,Portion Unit,Cost Unit,Cost per Unit,Cost per Bowl,Notes
+Base,Jasmine rice (dry),0.250,lb,USD/lb,$0.80,$0.20,1 cup cooked rice
+Protein,Pork (raw),0.313,lb,USD/lb,$2.28,$0.71,≈5 oz raw
+Veg,Slaw mix,0.150,lb,USD/lb,$1.17,$0.18,Crunch layer
+Veg,Julienne carrots,0.050,lb,USD/lb,$0.65,$0.03,Carrot strips
+Veg,Julienne cucumbers,0.050,lb,USD/lb,$1.50,$0.08,Cucumber strips
+Pickle,Pickled onion base,0.031,qt,USD/qt,$1.25,$0.04,1 oz portion
+Sauce,BBQ Sauce (House),0.008,gal,USD/gal,$9.49,$0.07,1 oz squeeze
+Sauce,House Green Sauce (Peruvian + Aioli Fusion),0.006,gal,USD/gal,$9.98,$0.06,0.75 oz crema stand-in
+Garnish,Herb mix,0.020,lb,USD/lb,$6.00,$0.12,Fresh herbs
+Packaging,Packaging cost per bowl,1.000,each,USD,$0.40,$0.40,Disposable set
+,,,,,$0.00,$0.00,
+,,,,,$0.00,$0.00,
+,,,,,$0.00,$0.00,
+,,,,,$0.00,$0.00,
+,,,,,$0.00,$0.00,
+,,,,,$0.00,$0.00,
+,,,,,$0.00,$0.00,
+,,,,,$0.00,$0.00,
+,,,,,$0.00,$0.00,

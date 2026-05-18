@@ -385,6 +385,11 @@ label {
   gap: 0.4rem;
 }
 
+.assumptions-grid {
+  display: grid;
+  gap: 1rem;
+}
+
 /* ── Events & Revenue ──────────────────────────────────────────────────────── */
 
 .event-type-grid {

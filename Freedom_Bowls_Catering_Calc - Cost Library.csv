@@ -1,0 +1,58 @@
+Category,Data Point,Default Value,Unit,Recommended Source,Notes
+Menu Pricing,Menu price per bowl,$13.00,USD,Best-selling bowl price,Update if average ticket shifts
+Menu Pricing,Packaging cost per bowl,$0.40,USD,Packaging supplier invoice,Include bowl+lids+fork+napkin bundle
+Proteins,Chicken (raw),$2.45,USD/lb,Primary poultry vendor,Track trim/butchering losses when yields change
+Proteins,Pork (raw),$2.28,USD/lb,Primary pork vendor,Verify for shoulder vs belly cuts
+Proteins,Gyro blend (raw),$3.20,USD/lb,Meat distributor contract,Note if switching to beef-only
+Staples,Jasmine rice (dry),$0.80,USD/lb,Rice supplier or wholesaler,Confirm for current pallet pricing
+Staples,Slaw mix,$1.17,USD/lb,Produce vendor,Differentiate pre-shredded vs whole head costs
+Staples,Julienne carrots,$0.65,USD/lb,Produce vendor,Adjust if buying pre-cut
+Staples,Julienne cucumbers,$1.50,USD/lb,Produce vendor,Account for shrink once prepped
+Staples,Celery sticks,$1.70,USD/lb,Produce vendor,Only needed for Buffalo bowls
+Staples,Herb mix,$6.00,USD/lb,Herb supplier farmers market,High variance; update monthly in season
+Pickles,Pickled onion base,$1.25,USD/qt,Pickling vinegar + spice cost sheet,Recalculate from recipe batch costing
+Pickles,Pickled carrot base,$1.25,USD/qt,Pickling ingredients vendor,Tie to Buffalo bowl demand
+Sauces,House Green Sauce (Peruvian + Aioli Fusion),$9.98,USD/gal,"Bright, creamy, herby, mild heat","Mayo (8 c), Cilantro (3 bunches), Jalapeños (5–6), Garlic (8–10 cloves), Lime juice (¾ c), White vinegar (⅓ c), Olive oil (½ c), Cumin (2 tsp), Salt (1½ tsp), Cold water (½ c optional)"
+Sauces,BBQ Sauce (House),$9.49,USD/gal,Sweet-smoky classic,"Ketchup (2qt), Brown sugar (2c), Vinegar (2c), Molasses (1c), Worcestershire (½c), Yellow mustard (¼c), Paprika, Garlic, Onion, Chili"
+Sauces,Toum Garlic Sauce,$9.51,USD/gal,"Intense, creamy garlic with lemon","Garlic (3c), Lemon juice (1c), Oil (2qt), Salt (1Tbsp), Ice water (½c)"
+Sauces,Buffalo Sauce,$15.58,USD/gal,"Tangy, buttery cayenne heat","Frank’s RedHot (2qt), Butter (1lb), Vinegar (½c), Garlic powder, Worcestershire"
+Sauces,Tzatziki,$20.59,USD/gal,"Cool, garlicky, fresh","Greek yogurt (2qt), Cucumber (2 large, drained), Olive oil (4Tbsp), Lemon (3Tbsp), Garlic (4 cloves), Dill (3Tbsp), Salt & pepper"
+Sauces,Mustardy Habanero Hot Sauce,$13.05,USD/gal,"Tangy, bright, gentle tropical heat","Habaneros (1lb, seeded), Garlic (1c), Scallions (1c), Carrot (½c), Cilantro (1c), Thyme (½c), Vinegar (4c), Water (4c), Yellow mustard (2c), Allspice (1tsp), Salt (2Tbsp)"
+Sauces,Bangkok Peanut Sauce,$7.62,USD/gal,"Sweet, nutty, umami","Peanut butter (6c), Milk (6c), Soy sauce (2c), Brown sugar (1½c), Rice vinegar (1c), Lime juice (1c), Oil (¾c), Garlic (½c), Ginger (¼c), Chili paste (¼c), Fish sauce (1Tbsp)"
+Sauces,Caribbean Jerk-Pineapple Sauce,$9.26,USD/gal,"Smoky-sweet, fruity, spiced glaze","Crushed pineapple (4c), Pineapple juice (2c), Brown sugar (2c), Soy sauce (1c), Vinegar (1c), Orange juice (1c), Ketchup (1c), Green onion (¾c), Thyme (½c), Garlic (½c), Habanero (2), Allspice (2Tbsp), Lime juice (¼c)"
+Produce,Corn (106 oz can),$6.40,USD/gal,Wholesale club or distributor,Record if using fresh corn in season
+Produce,Bell peppers,$1.20,USD/each,Produce vendor,Color mix may alter cost
+Produce,Roma tomatoes,$1.20,USD/lb,Produce vendor,Watch for winter price spikes
+Produce,Red onions,$2.24,USD/lb,Produce vendor,Needed for both salsa and pickles
+Produce,Cilantro,$0.80,USD/bunch,Produce vendor,High spoilage—validate frequently
+Produce,Lime juice,$0.90,USD/cup,Citrus wholesaler,Frozen vs fresh will change cost
+Produce,Salt,$0.02,USD/Tbsp,Pantry staples supplier,Commodity but confirm bulk size
+Operations,Commissary rent,$450.00,USD/month,Lease agreement,Spread across active months
+Operations,Insurance & licenses,$150.00,USD/month,Insurance broker statement,Include health dept fees
+Operations,Fuel & propane,$250.00,USD/month,Fuel receipts + propane deliveries,Adjust for route distance changes
+Operations,Loan or trailer payment,$600.00,USD/month,Finance statement,Add balloon payments separately
+Operations,Permits & event fees,$100.00,USD/month,City/state fee schedule,Average across booked events
+Operations,Supplies/repairs/marketing,$150.00,USD/month,Accounting ledger,Roll in signage + digital ads
+Labor,Festival staff count,$3.00,People,Historical staffing per event,Update if adding cashier/runner
+Labor,Festival service hours,$8.00,Hours,Event schedule + teardown time,Include on-site prep buffer
+Labor,Festival prep hours,$2.00,Hours,Kitchen prep logs,Paid hours only
+Labor,Festival wage,$15.00,USD/hour,Payroll records,Check local wage hikes
+Labor,Festival crew lead bonus,$25.00,USD/event,Owner policy,Review if lead duties expand
+Labor,Community staff count,$2.00,People,Typical pop-up crew,Adjust for slow season
+Labor,Community service hours,$6.00,Hours,Service window,Include travel if paid
+Labor,Community prep hours,$1.00,Hours,Kitchen prep logs,Add if batch cooking same day
+Labor,Community wage,$15.00,USD/hour,Payroll records,Include employer payroll taxes separately
+Labor,Community crew lead bonus,$20.00,USD/event,Owner policy,Line up with responsibilities
+Labor,Catering staff count,$2.00,People,Catering history,Add server if plating on site
+Labor,Catering service hours,$4.00,Hours,Catering contract,Adjust for buffet vs boxed
+Labor,Catering prep hours,$1.00,Hours,Catering prep sheet,Capture day-before prep
+Labor,Catering wage,$15.00,USD/hour,Payroll records,Tip-out policies may offset wages
+Labor,Catering crew lead bonus,$15.00,USD/event,Owner policy,Consider delivery driver stipend
+Drinks,Classic Lemonade (House Base),2.3,USD/gal,,"Water (14 c), Sugar (2 c), Lemon juice (2 c), Pinch salt (optional)"
+Drinks,Mango Lemonade,4.42,USD/gal,,"Lemonade (¾ gal), Mango nectar (1 qt = 4 c), Lime juice (splash)"
+Drinks,Mango Iced Tea,2.13,USD/gal,,"Black tea (8 bags), Hot water (8 c), Sugar (¾ c), Mango nectar (3 c), Cold water (9 c), Lemon juice (splash optional)"
+Menu Pricing,Food cost per bowl,$4.90,USD,Derived from recipe costing,Adjust as you refine ingredient yields.
+Menu Pricing,Food + packaging cost per bowl,,USD,Calculated,Auto-calculated in workbook.
+Drinks,Drink price per cup,$4.00,USD,Menu pricing model,Retail drink price
+Drinks,Drink cost per cup,$0.30,USD,Recipe costing,Average blended drink cost
+Drinks,Drink attach rate,0.45,drinks/bowl,Historical average,Fraction of guests buying drinks

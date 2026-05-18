@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "import:worksheets": "node scripts/import-worksheet-data.mjs",
     "types:supabase": "supabase gen types typescript --local > src/lib/database.types.ts"
   },
   "dependencies": {
