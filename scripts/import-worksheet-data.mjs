@@ -32,10 +32,10 @@ const files = {
   costLibrary: 'Freedom_Bowls_Catering_Calc - Cost Library.csv',
   menuComponents: 'Freedom_Bowls_Catering_Calc - Menu Components.csv',
   sauceCosts: 'Freedom_Bowls_Catering_Calc - Sauce Costs.csv',
+  events: 'events.json',
 };
 
 const liquidOuncesPerGallon = 128;
-const defaultMenuSellPrice = 13;
 
 function parseCsv(text) {
   const rows = [];
@@ -94,6 +94,14 @@ function parseNumber(value) {
   if (!cleaned) return null;
   const parsed = Number(cleaned);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function slugEventKey(type) {
+  return type
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
 }
 
 function normalizeName(name) {
@@ -197,6 +205,10 @@ async function main() {
     readCsv(files.sauceCosts),
     readCsv(files.menuComponents),
   ]);
+  const events = JSON.parse(await fs.readFile(path.join(root, files.events), 'utf8'));
+  const menuPrice = parseNumber(
+    costRows.find((row) => row['Data Point'] === 'Menu price per bowl')?.['Default Value'],
+  );
 
   const ingredientMap = new Map();
   for (const row of costRows) {
@@ -210,6 +222,21 @@ async function main() {
 
   const ingredients = await upsertByName(supabase, 'ingredients', [...ingredientMap.values()]);
   const ingredientIds = new Map(ingredients.map((ingredient) => [ingredient.name, ingredient.id]));
+
+  const assumptions = costRows.map((row) => ({
+    category: row.Category,
+    name: row['Data Point'],
+    default_value: parseNumber(row['Default Value']),
+    unit: row.Unit || null,
+    recommended_source: row['Recommended Source'] || null,
+    notes: row.Notes || null,
+  }));
+  const { error: assumptionsError } = await supabase
+    .from('cost_assumptions')
+    .upsert(assumptions, { onConflict: 'name' });
+  if (assumptionsError) {
+    throw new Error(`cost_assumptions upsert failed: ${assumptionsError.message}`);
+  }
 
   const sauceSummaryRows = sauceRows.filter((row) => row['Data Point'] === 'Sauce total');
   const recipes = await upsertByName(
@@ -264,7 +291,7 @@ async function main() {
     menuNames.map((name) => ({
       name,
       description: null,
-      sell_price: defaultMenuSellPrice,
+      sell_price: menuPrice,
       notes: 'Imported from Menu Components worksheet.',
     })),
   );
@@ -320,6 +347,66 @@ async function main() {
     if (error) throw new Error(`menu_item_components insert failed: ${error.message}`);
   }
 
+  const laborValue = (eventKind, suffix) =>
+    parseNumber(
+      costRows.find((row) => row['Data Point'] === `${eventKind} ${suffix}`)?.['Default Value'],
+    );
+  const eventKindByType = {
+    'Community Pop-Up': 'Community',
+    'Brewery Night': 'Community',
+    'Corporate Lunch': 'Catering',
+    'Festival Day': 'Festival',
+    'Private Catering': 'Catering',
+  };
+  const eventTypeRows = events.event_types.map((eventType) => {
+    const kind = eventKindByType[eventType.type] ?? 'Community';
+    const staff = laborValue(kind, 'staff count') ?? eventType.staff_required;
+    const serviceHours = laborValue(kind, 'service hours') ?? eventType.hours_on_site;
+    const prepHours = laborValue(kind, 'prep hours') ?? 0;
+    const wage = laborValue(kind, 'wage') ?? 0;
+    const crewLeadBonus = laborValue(kind, 'crew lead bonus') ?? 0;
+    const covers = menuPrice ? Math.max(1, Math.round(eventType.average_gross / menuPrice)) : 1;
+
+    return {
+      type: eventType.type,
+      covers,
+      service_hours: serviceHours,
+      prep_hours: prepHours,
+      staff_count: staff,
+      wage,
+      crew_lead_bonus: crewLeadBonus,
+      avg_gross: eventType.average_gross,
+      notes: `Imported from events.json and ${kind} labor assumptions.`,
+    };
+  });
+  const { error: eventTypesError } = await supabase
+    .from('event_types')
+    .upsert(eventTypeRows, { onConflict: 'type' });
+  if (eventTypesError) throw new Error(`event_types upsert failed: ${eventTypesError.message}`);
+
+  const eventTypeNamesBySlug = new Map(
+    events.event_types.map((eventType) => [slugEventKey(eventType.type), eventType.type]),
+  );
+  const aliasByPlanKey = new Map([
+    ['community_popups', 'Community Pop-Up'],
+    ['brewery_nights', 'Brewery Night'],
+    ['corporate_lunches', 'Corporate Lunch'],
+    ['festival_days', 'Festival Day'],
+    ['private_catering', 'Private Catering'],
+  ]);
+  const planRows = events.annual_examples.flatMap((plan) =>
+    Object.entries(plan.events).map(([key, count]) => ({
+      plan_name: plan.plan_name,
+      event_type: aliasByPlanKey.get(key) ?? eventTypeNamesBySlug.get(key) ?? key,
+      event_count: count,
+      notes: 'Imported from events.json.',
+    })),
+  );
+  const { error: plansError } = await supabase
+    .from('annual_plan_events')
+    .upsert(planRows, { onConflict: 'plan_name,event_type' });
+  if (plansError) throw new Error(`annual_plan_events upsert failed: ${plansError.message}`);
+
   console.log(
     JSON.stringify(
       {
@@ -328,6 +415,9 @@ async function main() {
         recipeLines: recipeLines.length,
         menuItems: menuItems.length,
         menuComponents: components.length,
+        costAssumptions: assumptions.length,
+        eventTypes: eventTypeRows.length,
+        annualPlanEvents: planRows.length,
         missing: [...missing],
         costLibraryRowsNotMappedToCurrentFoodSchema: costRows.filter((row) => !costLibraryIngredient(row)).length,
       },

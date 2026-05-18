@@ -1,6 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
-  Beef,
   BookOpen,
   Calculator,
   ClipboardList,
@@ -14,7 +13,6 @@ import {
   Trash2,
   Utensils,
 } from 'lucide-react';
-import costLibraryCsv from '../Freedom_Bowls_Catering_Calc - Cost Library.csv?raw';
 import { hasSupabaseConfig, supabase } from './lib/supabase';
 import type { Tables, TablesInsert, TablesUpdate } from './lib/database.types';
 import {
@@ -34,15 +32,10 @@ type MenuItemComponent = Tables<'menu_item_components'> & {
   recipes: Recipe | null;
   ingredients: Ingredient | null;
 };
+type CostAssumption = Tables<'cost_assumptions'>;
+type EventType = Tables<'event_types'>;
+type AnnualPlanEvent = Tables<'annual_plan_events'>;
 type Tab = 'ingredients' | 'builder' | 'costs' | 'menu' | 'prep' | 'events' | 'assumptions';
-type CostLibraryRow = {
-  Category: string;
-  'Data Point': string;
-  'Default Value': string;
-  Unit: string;
-  'Recommended Source': string;
-  Notes: string;
-};
 
 type IngredientForm = {
   id?: string;
@@ -139,58 +132,14 @@ const tabs: { id: Tab; label: string; icon: typeof Library }[] = [
   { id: 'assumptions', label: 'Cost Library', icon: FileSpreadsheet },
 ];
 
-const costLibraryRows = parseCostLibraryCsv(costLibraryCsv);
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const toNumber = (value: string) => Number(value || 0);
 const toNullableNumber = (value: string) => (value.trim() ? Number(value) : null);
-
-function parseCostLibraryCsv(csv: string): CostLibraryRow[] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let cell = '';
-  let quoted = false;
-
-  for (let index = 0; index < csv.length; index += 1) {
-    const char = csv[index];
-    const next = csv[index + 1];
-
-    if (quoted) {
-      if (char === '"' && next === '"') {
-        cell += '"';
-        index += 1;
-      } else if (char === '"') {
-        quoted = false;
-      } else {
-        cell += char;
-      }
-    } else if (char === '"') {
-      quoted = true;
-    } else if (char === ',') {
-      row.push(cell);
-      cell = '';
-    } else if (char === '\n') {
-      row.push(cell.replace(/\r$/, ''));
-      rows.push(row);
-      row = [];
-      cell = '';
-    } else {
-      cell += char;
-    }
-  }
-
-  if (cell || row.length) row.push(cell.replace(/\r$/, ''));
-  if (row.length) rows.push(row);
-
-  const [headers, ...body] = rows.filter((candidate) =>
-    candidate.some((value) => value.trim() !== ''),
-  );
-
-  return body.map((candidate) =>
-    Object.fromEntries(headers.map((header, index) => [header.trim(), candidate[index]?.trim() ?? ''])) as CostLibraryRow,
-  );
-}
+const isMissingBusinessSchema = (message: string) =>
+  message.includes("Could not find the table 'public.cost_assumptions'") ||
+  message.includes("Could not find the table 'public.event_types'") ||
+  message.includes("Could not find the table 'public.annual_plan_events'");
 
 const computeMenuItemCost = (
   components: MenuItemComponent[],
@@ -217,6 +166,9 @@ export function App() {
   const [recipeLines, setRecipeLines] = useState<RecipeLine[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [menuItemComponents, setMenuItemComponents] = useState<MenuItemComponent[]>([]);
+  const [costAssumptions, setCostAssumptions] = useState<CostAssumption[]>([]);
+  const [eventTypes, setEventTypes] = useState<EventType[]>([]);
+  const [annualPlanEvents, setAnnualPlanEvents] = useState<AnnualPlanEvent[]>([]);
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>('');
   const [selectedMenuItemId, setSelectedMenuItemId] = useState<string>('');
   const [ingredientForm, setIngredientForm] = useState<IngredientForm>(emptyIngredientForm);
@@ -249,7 +201,16 @@ export function App() {
     setLoading(true);
     setMessage('');
 
-    const [ingredientsResult, recipesResult, linesResult, menuItemsResult, componentsResult] =
+    const [
+      ingredientsResult,
+      recipesResult,
+      linesResult,
+      menuItemsResult,
+      componentsResult,
+      assumptionsResult,
+      eventTypesResult,
+      annualPlansResult,
+    ] =
       await Promise.all([
         supabase.from('ingredients').select('*').order('name'),
         supabase.from('recipes').select('*').order('name'),
@@ -262,25 +223,36 @@ export function App() {
           .from('menu_item_components')
           .select('*, recipes(*), ingredients(*)')
           .order('created_at', { ascending: true }),
+        supabase.from('cost_assumptions').select('*').order('category').order('name'),
+        supabase.from('event_types').select('*').order('type'),
+        supabase.from('annual_plan_events').select('*').order('plan_name').order('event_type'),
       ]);
 
-    const error =
+    const criticalError =
       ingredientsResult.error ??
       recipesResult.error ??
       linesResult.error ??
       menuItemsResult.error ??
       componentsResult.error;
+    const businessError =
+      assumptionsResult.error ?? eventTypesResult.error ?? annualPlansResult.error;
 
-    if (error) {
-      setMessage(error.message);
+    if (criticalError) {
+      setMessage(criticalError.message);
     } else {
       setIngredients(ingredientsResult.data ?? []);
       setRecipes(recipesResult.data ?? []);
       setRecipeLines((linesResult.data ?? []) as RecipeLine[]);
       setMenuItems(menuItemsResult.data ?? []);
       setMenuItemComponents((componentsResult.data ?? []) as MenuItemComponent[]);
+      setCostAssumptions(assumptionsResult.error ? [] : assumptionsResult.data ?? []);
+      setEventTypes(eventTypesResult.error ? [] : eventTypesResult.data ?? []);
+      setAnnualPlanEvents(annualPlansResult.error ? [] : annualPlansResult.data ?? []);
       setSelectedRecipeId((c) => c || recipesResult.data?.[0]?.id || '');
       setSelectedMenuItemId((c) => c || menuItemsResult.data?.[0]?.id || '');
+      if (businessError && !isMissingBusinessSchema(businessError.message)) {
+        setMessage(businessError.message);
+      }
     }
 
     setLoading(false);
@@ -491,6 +463,17 @@ export function App() {
     else await loadData();
   };
 
+  const saveCostAssumption = async (id: string, defaultValue: number | null) => {
+    setSaving(true);
+    const result = await supabase
+      .from('cost_assumptions')
+      .update({ default_value: defaultValue })
+      .eq('id', id);
+    setSaving(false);
+    if (result.error) setMessage(result.error.message);
+    else await loadData();
+  };
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -614,11 +597,27 @@ export function App() {
             />
           )}
 
-          {activeTab === 'prep' && <PrepPlanner recipes={recipes} />}
+          {activeTab === 'prep' && <PrepPlanner recipes={recipes} eventTypes={eventTypes} />}
 
-          {activeTab === 'events' && <EventsRevenue />}
+          {activeTab === 'events' && (
+            <EventsRevenue
+              annualPlanEvents={annualPlanEvents}
+              costAssumptions={costAssumptions}
+              eventTypes={eventTypes}
+              ingredients={ingredients}
+              menuItemComponents={menuItemComponents}
+              menuItems={menuItems}
+              recipeCostById={recipeCostById}
+            />
+          )}
 
-          {activeTab === 'assumptions' && <CostLibraryAssumptions rows={costLibraryRows} />}
+          {activeTab === 'assumptions' && (
+            <CostLibraryAssumptions
+              rows={costAssumptions}
+              saving={saving}
+              onSave={saveCostAssumption}
+            />
+          )}
         </>
       )}
     </main>
@@ -1398,15 +1397,7 @@ function MenuItemManager({
 
 // ── Prep Planner ──────────────────────────────────────────────────────────────
 
-const EVENT_PRESETS = [
-  { label: 'Pop-Up', covers: 80 },
-  { label: 'Brewery', covers: 130 },
-  { label: 'Corporate', covers: 175 },
-  { label: 'Festival', covers: 300 },
-  { label: 'Catering', covers: 200 },
-];
-
-function PrepPlanner({ recipes }: { recipes: Recipe[] }) {
+function PrepPlanner({ recipes, eventTypes }: { recipes: Recipe[]; eventTypes: EventType[] }) {
   const [covers, setCovers] = useState('150');
   const [checked, setChecked] = useState<Set<string>>(new Set(recipes.map((r) => r.id)));
 
@@ -1439,14 +1430,14 @@ function PrepPlanner({ recipes }: { recipes: Recipe[] }) {
           />
         </label>
         <div className="preset-chips">
-          {EVENT_PRESETS.map((p) => (
+          {eventTypes.map((p) => (
             <button
-              key={p.label}
+              key={p.id}
               type="button"
               className="chip"
               onClick={() => setCovers(String(p.covers))}
             >
-              {p.label} ({p.covers})
+              {p.type} ({p.covers})
             </button>
           ))}
         </div>
@@ -1506,47 +1497,84 @@ function PrepPlanner({ recipes }: { recipes: Recipe[] }) {
 
 // ── Events & Revenue ──────────────────────────────────────────────────────────
 
-const EVENT_TYPES = [
-  { type: 'Community Pop-Up', avg_gross: 1000, avg_net: 250, hours: 6, staff: 2 },
-  { type: 'Brewery Night', avg_gross: 1400, avg_net: 375, hours: 5, staff: 2 },
-  { type: 'Corporate Lunch', avg_gross: 1800, avg_net: 550, hours: 4, staff: 2 },
-  { type: 'Festival Day', avg_gross: 3000, avg_net: 900, hours: 10, staff: 3 },
-  { type: 'Private Catering', avg_gross: 2500, avg_net: 800, hours: 5, staff: 2 },
-];
+function EventsRevenue({
+  annualPlanEvents,
+  costAssumptions,
+  eventTypes,
+  ingredients,
+  menuItemComponents,
+  menuItems,
+  recipeCostById,
+}: {
+  annualPlanEvents: AnnualPlanEvent[];
+  costAssumptions: CostAssumption[];
+  eventTypes: EventType[];
+  ingredients: Ingredient[];
+  menuItemComponents: MenuItemComponent[];
+  menuItems: MenuItem[];
+  recipeCostById: Record<string, ReturnType<typeof calculateRecipeCosts>>;
+}) {
+  const assumptionValue = (name: string) =>
+    Number(costAssumptions.find((row) => row.name === name)?.default_value ?? 0);
+  const menuPrice =
+    menuItems.reduce((total, item) => total + Number(item.sell_price ?? 0), 0) /
+      Math.max(1, menuItems.filter((item) => item.sell_price !== null).length) ||
+    assumptionValue('Menu price per bowl');
+  const averageMenuCost =
+    menuItems.reduce((total, item) => {
+      const components = menuItemComponents.filter((component) => component.menu_item_id === item.id);
+      return total + computeMenuItemCost(components, recipeCostById, ingredients);
+    }, 0) / Math.max(1, menuItems.length);
+  const monthlyFixedCosts = costAssumptions
+    .filter((row) => row.category === 'Operations')
+    .reduce((total, row) => total + Number(row.default_value ?? 0), 0);
+  const annualFixedCosts = monthlyFixedCosts * 12;
+  const drinkPrice = assumptionValue('Drink price per cup');
+  const drinkCost = assumptionValue('Drink cost per cup');
+  const drinkAttachRate = assumptionValue('Drink attach rate');
+  const calculatedEventTypes = eventTypes.map((eventType) => {
+    const gross = Number(eventType.avg_gross ?? 0) || Number(eventType.covers) * menuPrice;
+    const foodCost = Number(eventType.covers) * averageMenuCost;
+    const drinkCount = Number(eventType.covers) * drinkAttachRate;
+    const drinkGross = drinkCount * drinkPrice;
+    const drinkVariableCost = drinkCount * drinkCost;
+    const labor =
+      Number(eventType.staff_count) *
+        (Number(eventType.service_hours) + Number(eventType.prep_hours)) *
+        Number(eventType.wage) +
+      Number(eventType.crew_lead_bonus);
+    const netBeforeFixed = gross + drinkGross - foodCost - drinkVariableCost - labor;
 
-const ANNUAL_PLANS = [
-  {
-    name: 'Balanced First Year',
-    events: { 'Community Pop-Up': 35, 'Brewery Night': 25, 'Corporate Lunch': 15, 'Festival Day': 10, 'Private Catering': 8 },
-    gross: 150500,
-    net: 43625,
-  },
-  {
-    name: 'Low-Stress / Retirement Style',
-    events: { 'Community Pop-Up': 15, 'Brewery Night': 20, 'Corporate Lunch': 10, 'Festival Day': 6, 'Private Catering': 12 },
-    gross: 116000,
-    net: 36250,
-  },
-  {
-    name: 'Aggressive Growth Year',
-    events: { 'Community Pop-Up': 40, 'Brewery Night': 35, 'Corporate Lunch': 20, 'Festival Day': 18, 'Private Catering': 15 },
-    gross: 241000,
-    net: 71975,
-  },
-];
-
-function EventsRevenue() {
-  const [targetNet, setTargetNet] = useState('40000');
-  const targetNum = Math.max(1, Number(targetNet) || 1);
+    return { ...eventType, drinkGross, foodCost, gross, labor, netBeforeFixed };
+  });
+  const eventMetricsByType = new Map(calculatedEventTypes.map((eventType) => [eventType.type, eventType]));
+  const plans = [...new Set(annualPlanEvents.map((row) => row.plan_name))].map((planName) => {
+    const rows = annualPlanEvents.filter((row) => row.plan_name === planName);
+    const gross = rows.reduce((total, row) => {
+      const eventType = eventMetricsByType.get(row.event_type);
+      return total + Number(row.event_count) * (eventType?.gross ?? 0);
+    }, 0);
+    const netBeforeFixed = rows.reduce((total, row) => {
+      const eventType = eventMetricsByType.get(row.event_type);
+      return total + Number(row.event_count) * (eventType?.netBeforeFixed ?? 0);
+    }, 0);
+    return { name: planName, rows, gross, net: netBeforeFixed - annualFixedCosts };
+  });
+  const [targetNet, setTargetNet] = useState('');
+  const targetNum = Math.max(1, Number(targetNet) || annualFixedCosts || 1);
 
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
-      {/* Event type cards */}
       <section className="panel">
         <h2>Event Types</h2>
+        {calculatedEventTypes.length === 0 && (
+          <p className="muted" style={{ marginTop: 0 }}>
+            Apply the business assumptions migration and run the worksheet importer to populate event planning.
+          </p>
+        )}
         <div className="event-type-grid">
-          {EVENT_TYPES.map((et) => {
-            const costPct = Math.round(((et.avg_gross - et.avg_net) / et.avg_gross) * 100);
+          {calculatedEventTypes.map((et) => {
+            const costPct = et.gross > 0 ? Math.round(((et.gross - et.netBeforeFixed) / et.gross) * 100) : 0;
             return (
               <div key={et.type} className="event-type-card">
                 <div className="etc-name">{et.type}</div>
@@ -1556,8 +1584,8 @@ function EventsRevenue() {
                     <strong>{formatCurrency(et.avg_gross)}</strong>
                   </div>
                   <div>
-                    <span>Avg net</span>
-                    <strong>{formatCurrency(et.avg_net)}</strong>
+                    <span>Net before fixed</span>
+                    <strong>{formatCurrency(et.netBeforeFixed)}</strong>
                   </div>
                   <div>
                     <span>Cost rate</span>
@@ -1565,7 +1593,7 @@ function EventsRevenue() {
                   </div>
                 </div>
                 <div className="etc-footer">
-                  {et.hours}h on-site · {et.staff} staff
+                  {et.covers} bowls · {et.service_hours}h service · {et.staff_count} staff
                 </div>
               </div>
             );
@@ -1579,10 +1607,10 @@ function EventsRevenue() {
         <label style={{ maxWidth: '240px', marginBottom: '1rem' }}>
           Target annual net income
           <input
-            min="1000"
+            min="1"
             step="1000"
             type="number"
-            value={targetNet}
+            value={targetNet || String(Math.round(annualFixedCosts || 1))}
             onChange={(e) => setTargetNet(e.target.value)}
           />
         </label>
@@ -1597,9 +1625,10 @@ function EventsRevenue() {
               </tr>
             </thead>
             <tbody>
-              {EVENT_TYPES.map((et) => {
-                const needed = Math.ceil(targetNum / et.avg_net);
-                const gross = needed * et.avg_gross;
+              {calculatedEventTypes.map((et) => {
+                const eventNet = Math.max(1, et.netBeforeFixed);
+                const needed = Math.ceil((targetNum + annualFixedCosts) / eventNet);
+                const gross = needed * et.gross;
                 const perWeek = (needed / 52).toFixed(1);
                 return (
                   <tr key={et.type}>
@@ -1621,7 +1650,7 @@ function EventsRevenue() {
       <section className="panel">
         <h2>Annual Plan Scenarios</h2>
         <div className="scenario-grid">
-          {ANNUAL_PLANS.map((plan) => (
+          {plans.map((plan) => (
             <div key={plan.name} className="scenario-card">
               <div className="sc-name">{plan.name}</div>
               <div className="sc-numbers">
@@ -1635,29 +1664,29 @@ function EventsRevenue() {
                 </div>
               </div>
               <div className="sc-events">
-                {Object.entries(plan.events).map(([type, count]) => (
-                  <div key={type} className="sc-event-row">
-                    <span>{type}</span>
+                {plan.rows.map((row) => (
+                  <div key={row.id} className="sc-event-row">
+                    <span>{row.event_type}</span>
                     <span>
-                      <strong>{count}</strong> events
+                      <strong>{row.event_count}</strong> events
                     </span>
                   </div>
                 ))}
               </div>
               <div className="sc-total">
-                {Object.values(plan.events).reduce((a, b) => a + b, 0)} total events
+                {plan.rows.reduce((total, row) => total + row.event_count, 0)} total events
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Beef icon easter egg / total context */}
-      <section className="panel" style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-        <Beef size={22} />
+      <section className="panel">
         <p className="muted" style={{ margin: 0 }}>
-          Startup cost estimate: <strong>$47K – $75K</strong> (truck + build-out + equipment).
-          Break-even typically at 130–180 events depending on your cost structure.
+          Average menu cost is <strong>{formatCurrency(averageMenuCost)}</strong>, average menu
+          price is <strong>{formatCurrency(menuPrice)}</strong>, and monthly fixed operating
+          assumptions total <strong>{formatCurrency(monthlyFixedCosts)}</strong>. These values are
+          recalculated from Ingredients, Recipes, Menu Items, and Cost Library.
         </p>
       </section>
     </div>
@@ -1666,13 +1695,37 @@ function EventsRevenue() {
 
 // ── Cost Library Assumptions ─────────────────────────────────────────────────
 
-function CostLibraryAssumptions({ rows }: { rows: CostLibraryRow[] }) {
-  const categories = [...new Set(rows.map((row) => row.Category).filter(Boolean))];
+function CostLibraryAssumptions({
+  rows,
+  saving,
+  onSave,
+}: {
+  rows: CostAssumption[];
+  saving: boolean;
+  onSave: (id: string, defaultValue: number | null) => void;
+}) {
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const categories = [...new Set(rows.map((row) => row.category).filter(Boolean))];
+
+  useEffect(() => {
+    setDrafts(
+      Object.fromEntries(
+        rows.map((row) => [row.id, row.default_value === null ? '' : String(row.default_value)]),
+      ),
+    );
+  }, [rows]);
 
   return (
     <div className="assumptions-grid">
+      {rows.length === 0 && (
+        <section className="panel">
+          <p className="muted" style={{ margin: 0 }}>
+            Apply the business assumptions migration and run the worksheet importer to populate this tab.
+          </p>
+        </section>
+      )}
       {categories.map((category) => {
-        const categoryRows = rows.filter((row) => row.Category === category);
+        const categoryRows = rows.filter((row) => row.category === category);
 
         return (
           <section className="panel" key={category}>
@@ -1693,16 +1746,45 @@ function CostLibraryAssumptions({ rows }: { rows: CostLibraryRow[] }) {
                     <th>Unit</th>
                     <th>Source</th>
                     <th>Notes</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {categoryRows.map((row) => (
-                    <tr key={`${category}-${row['Data Point']}`}>
-                      <td>{row['Data Point']}</td>
-                      <td>{row['Default Value'] || '—'}</td>
-                      <td>{row.Unit || '—'}</td>
-                      <td>{row['Recommended Source'] || '—'}</td>
-                      <td>{row.Notes || '—'}</td>
+                    <tr key={row.id}>
+                      <td>{row.name}</td>
+                      <td>
+                        <input
+                          className="table-input"
+                          type="number"
+                          step="0.01"
+                          value={drafts[row.id] ?? ''}
+                          onChange={(event) =>
+                            setDrafts((current) => ({
+                              ...current,
+                              [row.id]: event.target.value,
+                            }))
+                          }
+                        />
+                      </td>
+                      <td>{row.unit || '—'}</td>
+                      <td>{row.recommended_source || '—'}</td>
+                      <td>{row.notes || '—'}</td>
+                      <td>
+                        <button
+                          className="text-button"
+                          type="button"
+                          disabled={saving}
+                          onClick={() =>
+                            onSave(
+                              row.id,
+                              drafts[row.id]?.trim() ? Number(drafts[row.id]) : null,
+                            )
+                          }
+                        >
+                          Save
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

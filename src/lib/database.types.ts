@@ -3,6 +3,125 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      annual_plan_events: {
+        Row: {
+          id: string;
+          plan_name: string;
+          event_type: string;
+          event_count: number;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_name: string;
+          event_type: string;
+          event_count: number;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          plan_name?: string;
+          event_type?: string;
+          event_count?: number;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "annual_plan_events_event_type_fkey";
+            columns: ["event_type"];
+            isOneToOne: false;
+            referencedRelation: "event_types";
+            referencedColumns: ["type"];
+          },
+        ];
+      };
+      cost_assumptions: {
+        Row: {
+          id: string;
+          category: string;
+          name: string;
+          default_value: number | null;
+          unit: string | null;
+          recommended_source: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          category: string;
+          name: string;
+          default_value?: number | null;
+          unit?: string | null;
+          recommended_source?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          category?: string;
+          name?: string;
+          default_value?: number | null;
+          unit?: string | null;
+          recommended_source?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      event_types: {
+        Row: {
+          id: string;
+          type: string;
+          covers: number;
+          service_hours: number;
+          prep_hours: number;
+          staff_count: number;
+          wage: number;
+          crew_lead_bonus: number;
+          avg_gross: number | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          type: string;
+          covers: number;
+          service_hours: number;
+          prep_hours: number;
+          staff_count: number;
+          wage: number;
+          crew_lead_bonus?: number;
+          avg_gross?: number | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          type?: string;
+          covers?: number;
+          service_hours?: number;
+          prep_hours?: number;
+          staff_count?: number;
+          wage?: number;
+          crew_lead_bonus?: number;
+          avg_gross?: number | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       menu_items: {
         Row: {
           id: string;
