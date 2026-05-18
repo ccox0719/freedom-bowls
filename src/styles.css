@@ -385,6 +385,16 @@ label {
   gap: 0.4rem;
 }
 
+.selected-row {
+  background: #eaf4ef;
+}
+
+.prep-detail {
+  border-top: 1px solid #ddd5c4;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
 .assumptions-grid {
   display: grid;
   gap: 1rem;

@@ -635,6 +635,7 @@ export function App() {
               ingredients={ingredients}
               menuItemComponents={menuItemComponents}
               menuItems={menuItems}
+              recipeLines={recipeLines}
               recipes={recipes}
             />
           )}
@@ -1448,15 +1449,19 @@ function PrepPlanner({
   ingredients,
   menuItemComponents,
   menuItems,
+  recipeLines,
   recipes,
 }: {
   eventTypes: EventType[];
   ingredients: Ingredient[];
   menuItemComponents: MenuItemComponent[];
   menuItems: MenuItem[];
+  recipeLines: RecipeLine[];
   recipes: Recipe[];
 }) {
   const [covers, setCovers] = useState('150');
+  const [bufferPct, setBufferPct] = useState('10');
+  const [selectedPrepRecipeId, setSelectedPrepRecipeId] = useState('');
   const [selectedMenuIds, setSelectedMenuIds] = useState<Set<string>>(new Set());
 
   const toggle = (id: string) => {
@@ -1476,25 +1481,29 @@ function PrepPlanner({
   }, [menuItems]);
 
   const coversNum = Math.max(1, Number(covers) || 1);
+  const bufferPercent = Math.max(0, Number(bufferPct) || 0);
+  const bufferMultiplier = 1 + bufferPercent / 100;
   const selectedMenus = menuItems.filter((item) => selectedMenuIds.has(item.id));
-  const coversPerMenuItem = coversNum / Math.max(1, selectedMenus.length);
+  const coversPerMenuItem = (coversNum * bufferMultiplier) / Math.max(1, selectedMenus.length);
   const selectedComponents = menuItemComponents.filter((component) =>
     selectedMenuIds.has(component.menu_item_id),
   );
-  const proteinPrepRows = Object.values(
+  const rawPrepRows = Object.values(
     selectedComponents
-      .filter((component) => component.component_type === 'ingredient' && getComponentGroup(component) === 'Protein')
-      .reduce<Record<string, { ingredient: Ingredient; grams: number }>>((acc, component) => {
+      .filter((component) => component.component_type === 'ingredient')
+      .reduce<Record<string, { group: string; ingredient: Ingredient; amount: number; unit: string }>>((acc, component) => {
         const ingredient =
           component.ingredients ?? ingredients.find((item) => item.id === component.ingredient_id);
         if (!ingredient) return acc;
 
-        const current = acc[ingredient.id] ?? { ingredient, grams: 0 };
-        current.grams += Number(component.amount) * coversPerMenuItem;
-        acc[ingredient.id] = current;
+        const group = getComponentGroup(component);
+        const key = `${group}:${ingredient.id}:${component.amount_unit}`;
+        const current = acc[key] ?? { group, ingredient, amount: 0, unit: component.amount_unit };
+        current.amount += Number(component.amount) * coversPerMenuItem;
+        acc[key] = current;
         return acc;
       }, {}),
-  );
+  ).sort((a, b) => a.group.localeCompare(b.group) || a.ingredient.name.localeCompare(b.ingredient.name));
   const recipePrepRows = Object.values(
     selectedComponents
       .filter((component) => component.component_type === 'recipe' && component.recipe_id)
@@ -1507,13 +1516,30 @@ function PrepPlanner({
         acc[recipe.id] = current;
         return acc;
       }, {}),
-  );
+  ).sort((a, b) => a.recipe.name.localeCompare(b.recipe.name));
+  const activeRecipePrep =
+    recipePrepRows.find((row) => row.recipe.id === selectedPrepRecipeId) ?? recipePrepRows[0] ?? null;
+  const activeRecipeBatchOunces = activeRecipePrep
+    ? (recipeYieldInGallons(activeRecipePrep.recipe) ?? 0) * 128
+    : 0;
+  const activeRecipeBatchGrams = activeRecipeBatchOunces * 28.3495231;
+  const activeRecipeNeededGrams = activeRecipePrep ? activeRecipePrep.ounces * 28.3495231 : 0;
+  const activeRecipeBatches =
+    activeRecipePrep && activeRecipeBatchOunces > 0
+      ? Math.ceil(activeRecipePrep.ounces / activeRecipeBatchOunces)
+      : null;
+  const activeRecipeScale =
+    activeRecipeBatchGrams > 0 ? activeRecipeNeededGrams / activeRecipeBatchGrams : 0;
+  const activeRecipeRoundedBatchScale = activeRecipeBatches ?? activeRecipeScale;
+  const activeRecipeLines = activeRecipePrep
+    ? recipeLines.filter((line) => line.recipe_id === activeRecipePrep.recipe.id)
+    : [];
 
   return (
     <section className="panel">
       <h2>Prep Planner</h2>
       <p className="muted" style={{ marginTop: 0 }}>
-        Enter expected covers and select the menu mix to calculate sauce batches and raw protein needs.
+        Enter expected covers and select the menu mix to calculate every raw prep item and sauce batch.
       </p>
 
       <div className="prep-top">
@@ -1524,6 +1550,16 @@ function PrepPlanner({
             type="number"
             value={covers}
             onChange={(e) => setCovers(e.target.value)}
+          />
+        </label>
+        <label style={{ maxWidth: '180px' }}>
+          Industry buffer %
+          <input
+            min="0"
+            step="1"
+            type="number"
+            value={bufferPct}
+            onChange={(e) => setBufferPct(e.target.value)}
           />
         </label>
         <div className="preset-chips">
@@ -1539,6 +1575,9 @@ function PrepPlanner({
           ))}
         </div>
       </div>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Quantities include {bufferPercent.toFixed(0)}% buffer and are shown in grams first for scale prep.
+      </p>
 
       <div className="field-grid" style={{ marginBottom: '1rem' }}>
         {menuItems.map((item) => (
@@ -1559,7 +1598,7 @@ function PrepPlanner({
           <thead>
             <tr>
               <th>Sauce / Recipe</th>
-              <th>Needed</th>
+              <th>Needed with buffer</th>
               <th>Batch yield</th>
               <th>Batches needed</th>
             </tr>
@@ -1567,12 +1606,20 @@ function PrepPlanner({
           <tbody>
             {recipePrepRows.map(({ recipe, ounces }) => {
                 const batchOunces = (recipeYieldInGallons(recipe) ?? 0) * 128;
+                const neededGrams = ounces * 28.3495231;
+                const batchGrams = batchOunces * 28.3495231;
                 const batches = batchOunces > 0 ? Math.ceil(ounces / batchOunces) : null;
                 return (
-                  <tr key={recipe.id}>
+                  <tr
+                    className={activeRecipePrep?.recipe.id === recipe.id ? 'selected-row' : ''}
+                    key={recipe.id}
+                    onClick={() => setSelectedPrepRecipeId(recipe.id)}
+                  >
                     <td>{recipe.name}</td>
-                    <td>{ounces.toFixed(1)} oz</td>
-                    <td>{batchOunces > 0 ? `${batchOunces.toFixed(0)} oz` : '—'}</td>
+                    <td>
+                      {neededGrams.toFixed(0)} g <span className="muted">({ounces.toFixed(1)} oz)</span>
+                    </td>
+                    <td>{batchGrams > 0 ? `${batchGrams.toFixed(0)} g` : '—'}</td>
                     <td>
                       <strong>{batches ?? '—'}</strong>
                     </td>
@@ -1587,31 +1634,82 @@ function PrepPlanner({
         <table>
           <thead>
             <tr>
-              <th>Protein</th>
-              <th>Needed</th>
+              <th>Group</th>
+              <th>Prep item</th>
+              <th>Needed with buffer</th>
               <th>Purchase unit</th>
               <th>Estimated cost</th>
             </tr>
           </thead>
           <tbody>
-            {proteinPrepRows.map(({ ingredient, grams }) => (
-              <tr key={ingredient.id}>
+            {rawPrepRows.map(({ group, ingredient, amount, unit }) => (
+              <tr key={`${group}-${ingredient.id}-${unit}`}>
+                <td>{group}</td>
                 <td>{ingredient.name}</td>
                 <td>
-                  {(grams / 453.59237).toFixed(2)} lb <span className="muted">({grams.toFixed(0)} g)</span>
+                  {unit === 'g' ? (
+                    <>
+                      {amount.toFixed(0)} g <span className="muted">({(amount / 453.59237).toFixed(2)} lb)</span>
+                    </>
+                  ) : (
+                    `${amount.toFixed(1)} ${unit}`
+                  )}
                 </td>
                 <td>{ingredient.purchase_unit}</td>
-                <td>{formatCurrency(grams * Number(ingredient.cost_per_gram ?? 0))}</td>
+                <td>
+                  {unit === 'g'
+                    ? formatCurrency(amount * Number(ingredient.cost_per_gram ?? 0))
+                    : formatCurrency(amount * Number(ingredient.default_purchase_price ?? 0))}
+                </td>
               </tr>
             ))}
-            {proteinPrepRows.length === 0 && (
+            {rawPrepRows.length === 0 && (
               <tr>
-                <td colSpan={4}>No protein components found for the selected menu mix.</td>
+                <td colSpan={5}>No raw prep components found for the selected menu mix.</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {activeRecipePrep && (
+        <div className="prep-detail">
+          <div className="panel-heading">
+            <div>
+              <h2>{activeRecipePrep.recipe.name}</h2>
+              <p className="muted" style={{ margin: 0 }}>
+                Need {activeRecipeNeededGrams.toFixed(0)} g with buffer. Make{' '}
+                <strong>{activeRecipeBatches ?? activeRecipeScale.toFixed(2)}</strong> batch
+                {activeRecipeBatches === 1 ? '' : 'es'} for service.
+              </p>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ingredient</th>
+                  <th>Exact needed</th>
+                  <th>Rounded batch prep</th>
+                  <th>Base batch line</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeRecipeLines.map((line) => (
+                  <tr key={line.id}>
+                    <td>{line.ingredients?.name ?? 'Unknown ingredient'}</td>
+                    <td>{(Number(line.grams_used) * activeRecipeScale).toFixed(0)} g</td>
+                    <td>{(Number(line.grams_used) * activeRecipeRoundedBatchScale).toFixed(0)} g</td>
+                    <td>
+                      {line.amount} {line.amount_unit}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
