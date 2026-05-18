@@ -1,0 +1,128 @@
+{
+  "recipes": [
+    {
+      "name": "Fresh Corn Salsa",
+      "yield": "5.2 gallons",
+      "servings": 300,
+      "ingredients": [
+        { "item": "Frozen corn or canned corn", "amount": 24, "unit": "lb" },
+        { "item": "Roma tomatoes", "amount": 40, "unit": "whole" },
+        { "item": "Bell peppers", "amount": 20, "unit": "whole" },
+        { "item": "Yellow onions", "amount": 10, "unit": "whole" },
+        { "item": "Cilantro", "amount": 7, "unit": "bunches" },
+        { "item": "Lime juice", "amount": 1.5, "unit": "cups" },
+        { "item": "Salt", "amount": 0.5, "unit": "cups" }
+      ]
+    },
+    {
+      "name": "Cilantro Jalapeño Aioli",
+      "yield": "2 gallons",
+      "servings": 300,
+      "ingredients": [
+        { "item": "Mayonnaise", "amount": 12, "unit": "cups" },
+        { "item": "Greek yogurt", "amount": 12, "unit": "cups" },
+        { "item": "Cilantro", "amount": 16, "unit": "bunches" },
+        { "item": "Jalapeños", "amount": 31, "unit": "whole" },
+        { "item": "Garlic cloves", "amount": 47, "unit": "cloves" },
+        { "item": "Limes", "amount": 16, "unit": "whole" },
+        { "item": "Ground cumin", "amount": 7.5, "unit": "tbsp" },
+        { "item": "Salt", "amount": 2.5, "unit": "tbsp" }
+      ]
+    },
+    {
+      "name": "Bangkok Peanut Sauce",
+      "yield": "2 gallons",
+      "servings": 300,
+      "ingredients": [
+        { "item": "Peanut butter", "amount": 12, "unit": "cups" },
+        { "item": "Brown sugar", "amount": 3, "unit": "cups" },
+        { "item": "Soy sauce", "amount": 4, "unit": "cups" },
+        { "item": "Rice vinegar", "amount": 2, "unit": "cups" },
+        { "item": "Chili paste", "amount": 0.5, "unit": "cups" },
+        { "item": "Fish sauce", "amount": 0.25, "unit": "cups" },
+        { "item": "Garlic", "amount": 2.5, "unit": "cups" },
+        { "item": "Fresh ginger", "amount": 1.25, "unit": "cups" },
+        { "item": "Lime juice", "amount": 1.5, "unit": "cups" },
+        { "item": "Neutral oil", "amount": 1.5, "unit": "cups" }
+      ]
+    },
+    {
+      "name": "Caribbean Jerk-Pineapple Sauce",
+      "yield": "2 gallons",
+      "servings": 300,
+      "ingredients": [
+        { "item": "Pineapple chunks", "amount": 8, "unit": "cups" },
+        { "item": "Pineapple juice", "amount": 4, "unit": "cups" },
+        { "item": "Orange juice", "amount": 2, "unit": "cups" },
+        { "item": "Brown sugar", "amount": 4, "unit": "cups" },
+        { "item": "Soy sauce", "amount": 2, "unit": "cups" },
+        { "item": "White vinegar", "amount": 2, "unit": "cups" },
+        { "item": "Ketchup", "amount": 2, "unit": "cups" },
+        { "item": "Green onions", "amount": 1.5, "unit": "cups" },
+        { "item": "Fresh thyme", "amount": 1, "unit": "cups" },
+        { "item": "Garlic", "amount": 2.5, "unit": "cups" },
+        { "item": "Habaneros", "amount": 10, "unit": "whole" },
+        { "item": "Allspice", "amount": 0.25, "unit": "cups" },
+        { "item": "Lime juice", "amount": 0.5, "unit": "cups" }
+      ]
+    },
+    {
+      "name": "Toum Garlic Sauce",
+      "yield": "1.5 gallons",
+      "servings": 300,
+      "ingredients": [
+        { "item": "Garlic", "amount": 6, "unit": "cups" },
+        { "item": "Lemon juice", "amount": 2.5, "unit": "cups" },
+        { "item": "Neutral oil", "amount": 1, "unit": "gallon" },
+        { "item": "Salt", "amount": 0.25, "unit": "cups" }
+      ]
+    },
+    {
+      "name": "Tzatziki",
+      "yield": "1.5 gallons",
+      "servings": 300,
+      "ingredients": [
+        { "item": "Greek yogurt", "amount": 6, "unit": "quarts" },
+        { "item": "Cucumbers", "amount": 6, "unit": "whole" },
+        { "item": "Garlic cloves", "amount": 12, "unit": "cloves" },
+        { "item": "Fresh dill", "amount": 0.5, "unit": "cups" },
+        { "item": "Lemon juice", "amount": 0.75, "unit": "cups" },
+        { "item": "Olive oil", "amount": 0.75, "unit": "cups" },
+        { "item": "Salt", "amount": 0.25, "unit": "cups" }
+      ]
+    },
+    {
+      "name": "Mustardy Habanero Sauce",
+      "yield": "1 gallon",
+      "servings": 300,
+      "ingredients": [
+        { "item": "Habaneros", "amount": 2, "unit": "lb" },
+        { "item": "Garlic", "amount": 2, "unit": "cups" },
+        { "item": "Carrots", "amount": 1, "unit": "cups" },
+        { "item": "Cilantro", "amount": 2, "unit": "cups" },
+        { "item": "Fresh thyme", "amount": 1, "unit": "cups" },
+        { "item": "White vinegar", "amount": 8, "unit": "cups" },
+        { "item": "Water", "amount": 8, "unit": "cups" },
+        { "item": "Yellow mustard", "amount": 4, "unit": "cups" },
+        { "item": "Salt", "amount": 0.25, "unit": "cups" },
+        { "item": "Ground allspice", "amount": 2, "unit": "tsp" }
+      ]
+    },
+    {
+      "name": "FB's Seasoning Blend",
+      "yield": "bulk batch",
+      "ingredients": [
+        { "item": "Salt", "amount": 0.75, "unit": "cups" },
+        { "item": "Smoked paprika", "amount": 1, "unit": "cups" },
+        { "item": "Garlic powder", "amount": 0.5, "unit": "cups" },
+        { "item": "Onion powder", "amount": 0.25, "unit": "cups" },
+        { "item": "Cumin", "amount": 0.5, "unit": "cups" },
+        { "item": "Mild chili powder", "amount": 0.25, "unit": "cups" },
+        { "item": "Brown sugar", "amount": 0.25, "unit": "cups" },
+        { "item": "Black pepper", "amount": 0.25, "unit": "cups" },
+        { "item": "Dried basil", "amount": 2, "unit": "tbsp" },
+        { "item": "Dried parsley", "amount": 2, "unit": "tbsp" }
+      ]
+    }
+  ]
+}

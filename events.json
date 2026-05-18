@@ -1,0 +1,103 @@
+{
+  "scenarios": [
+    {
+      "name": "Conservative Startup Year",
+      "average_gross_per_event": 1400,
+      "average_net_per_event": 356,
+      "annual_net_goal": 40000,
+      "events_needed": 113,
+      "estimated_annual_gross": 158200
+    },
+    {
+      "name": "Improved Operations",
+      "average_gross_per_event": 1600,
+      "average_net_per_event": 425,
+      "annual_net_goal": 40000,
+      "events_needed": 95,
+      "estimated_annual_gross": 152000
+    },
+    {
+      "name": "Strong Festival/Catering Mix",
+      "average_gross_per_event": 1800,
+      "average_net_per_event": 525,
+      "annual_net_goal": 40000,
+      "events_needed": 77,
+      "estimated_annual_gross": 138600
+    }
+  ],
+  "event_types": [
+    {
+      "type": "Community Pop-Up",
+      "average_gross": 1000,
+      "average_net": 250,
+      "hours_on_site": 6,
+      "staff_required": 2
+    },
+    {
+      "type": "Brewery Night",
+      "average_gross": 1400,
+      "average_net": 375,
+      "hours_on_site": 5,
+      "staff_required": 2
+    },
+    {
+      "type": "Corporate Lunch",
+      "average_gross": 1800,
+      "average_net": 550,
+      "hours_on_site": 4,
+      "staff_required": 2
+    },
+    {
+      "type": "Festival Day",
+      "average_gross": 3000,
+      "average_net": 900,
+      "hours_on_site": 10,
+      "staff_required": 3
+    },
+    {
+      "type": "Private Catering",
+      "average_gross": 2500,
+      "average_net": 800,
+      "hours_on_site": 5,
+      "staff_required": 2
+    }
+  ],
+  "annual_examples": [
+    {
+      "plan_name": "Balanced First Year",
+      "events": {
+        "community_popups": 35,
+        "brewery_nights": 25,
+        "corporate_lunches": 15,
+        "festival_days": 10,
+        "private_catering": 8
+      },
+      "estimated_gross": 150500,
+      "estimated_net": 43625
+    },
+    {
+      "plan_name": "Low Stress Retirement Style",
+      "events": {
+        "community_popups": 15,
+        "brewery_nights": 20,
+        "corporate_lunches": 10,
+        "festival_days": 6,
+        "private_catering": 12
+      },
+      "estimated_gross": 116000,
+      "estimated_net": 36250
+    },
+    {
+      "plan_name": "Aggressive Growth Year",
+      "events": {
+        "community_popups": 40,
+        "brewery_nights": 35,
+        "corporate_lunches": 20,
+        "festival_days": 18,
+        "private_catering": 15
+      },
+      "estimated_gross": 241000,
+      "estimated_net": 71975
+    }
+  ]
+}
