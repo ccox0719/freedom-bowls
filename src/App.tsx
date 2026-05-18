@@ -146,16 +146,47 @@ const computeMenuItemCost = (
   recipeCostById: Record<string, ReturnType<typeof calculateRecipeCosts>>,
   ingredients: Ingredient[],
 ) =>
-  components.reduce((total, comp) => {
-    if (comp.component_type === 'recipe' && comp.recipe_id) {
-      return total + Number(comp.amount) * (recipeCostById[comp.recipe_id]?.costPerOunce ?? 0);
-    }
-    if (comp.component_type === 'ingredient' && comp.ingredient_id) {
-      const ing = ingredients.find((i) => i.id === comp.ingredient_id);
-      return total + calculateIngredientCost(Number(comp.amount), Number(ing?.cost_per_gram ?? 0));
-    }
-    return total;
-  }, 0);
+  components.reduce(
+    (total, comp) => total + getMenuComponentCost(comp, recipeCostById, ingredients),
+    0,
+  );
+
+const getMenuComponentCost = (
+  comp: MenuItemComponent,
+  recipeCostById: Record<string, ReturnType<typeof calculateRecipeCosts>>,
+  ingredients: Ingredient[],
+) => {
+  if (comp.component_type === 'recipe' && comp.recipe_id) {
+    return Number(comp.amount) * (recipeCostById[comp.recipe_id]?.costPerOunce ?? 0);
+  }
+
+  if (comp.component_type === 'ingredient' && comp.ingredient_id) {
+    const ing = ingredients.find((i) => i.id === comp.ingredient_id);
+    return calculateIngredientCost(Number(comp.amount), Number(ing?.cost_per_gram ?? 0));
+  }
+
+  return 0;
+};
+
+const getComponentGroup = (component: MenuItemComponent) => {
+  const explicitGroup = component.notes?.split(' - ')[0]?.trim();
+  if (explicitGroup) return explicitGroup;
+
+  if (component.ingredients?.notes?.startsWith('Proteins -')) return 'Protein';
+
+  return 'Other';
+};
+
+const computeMenuCostBreakdown = (
+  components: MenuItemComponent[],
+  recipeCostById: Record<string, ReturnType<typeof calculateRecipeCosts>>,
+  ingredients: Ingredient[],
+) =>
+  components.reduce<Record<string, number>>((breakdown, component) => {
+    const group = getComponentGroup(component);
+    breakdown[group] = (breakdown[group] ?? 0) + getMenuComponentCost(component, recipeCostById, ingredients);
+    return breakdown;
+  }, {});
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
@@ -1130,6 +1161,8 @@ function MenuItemManager({
   const selectedMenuItem = menuItems.find((m) => m.id === selectedMenuItemId) ?? null;
   const selectedComponents = menuItemComponents.filter((c) => c.menu_item_id === selectedMenuItemId);
   const selectedCost = computeMenuItemCost(selectedComponents, recipeCostById, ingredients);
+  const selectedBreakdown = computeMenuCostBreakdown(selectedComponents, recipeCostById, ingredients);
+  const selectedProteinCost = selectedBreakdown.Protein ?? 0;
   const sellPrice = selectedMenuItem?.sell_price ? Number(selectedMenuItem.sell_price) : null;
   const margin =
     sellPrice && sellPrice > 0 ? ((sellPrice - selectedCost) / sellPrice) * 100 : null;
@@ -1262,15 +1295,24 @@ function MenuItemManager({
             </div>
 
             <div className="metrics-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-              <Metric label="Ingredient cost" value={formatCurrency(selectedCost)} />
+              <Metric label="Food cost" value={formatCurrency(selectedCost)} />
+              <Metric label="Protein cost" value={formatCurrency(selectedProteinCost)} />
               <Metric
                 label="Sell price"
                 value={sellPrice ? formatCurrency(sellPrice) : '—'}
               />
+            </div>
+            <div className="metrics-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <Metric
                 label="Gross margin"
                 value={margin !== null ? `${margin.toFixed(1)}%` : '—'}
               />
+              {Object.entries(selectedBreakdown)
+                .filter(([group]) => group !== 'Protein')
+                .slice(0, 2)
+                .map(([group, cost]) => (
+                  <Metric key={group} label={`${group} cost`} value={formatCurrency(cost)} />
+                ))}
             </div>
 
             {/* Add component form */}
@@ -1354,16 +1396,11 @@ function MenuItemManager({
                 <tbody>
                   {selectedComponents.map((comp) => {
                     let name = '—';
-                    let cost = 0;
+                    const cost = getMenuComponentCost(comp, recipeCostById, ingredients);
                     if (comp.component_type === 'recipe' && comp.recipe_id) {
                       name = comp.recipes?.name ?? '—';
-                      cost = Number(comp.amount) * (recipeCostById[comp.recipe_id]?.costPerOunce ?? 0);
                     } else if (comp.component_type === 'ingredient' && comp.ingredient_id) {
                       name = comp.ingredients?.name ?? '—';
-                      cost = calculateIngredientCost(
-                        Number(comp.amount),
-                        Number(comp.ingredients?.cost_per_gram ?? 0),
-                      );
                     }
                     return (
                       <tr key={comp.id}>
@@ -1525,6 +1562,11 @@ function EventsRevenue({
       const components = menuItemComponents.filter((component) => component.menu_item_id === item.id);
       return total + computeMenuItemCost(components, recipeCostById, ingredients);
     }, 0) / Math.max(1, menuItems.length);
+  const averageProteinCost =
+    menuItems.reduce((total, item) => {
+      const components = menuItemComponents.filter((component) => component.menu_item_id === item.id);
+      return total + (computeMenuCostBreakdown(components, recipeCostById, ingredients).Protein ?? 0);
+    }, 0) / Math.max(1, menuItems.length);
   const monthlyFixedCosts = costAssumptions
     .filter((row) => row.category === 'Operations')
     .reduce((total, row) => total + Number(row.default_value ?? 0), 0);
@@ -1535,6 +1577,7 @@ function EventsRevenue({
   const calculatedEventTypes = eventTypes.map((eventType) => {
     const gross = Number(eventType.avg_gross ?? 0) || Number(eventType.covers) * menuPrice;
     const foodCost = Number(eventType.covers) * averageMenuCost;
+    const proteinCost = Number(eventType.covers) * averageProteinCost;
     const drinkCount = Number(eventType.covers) * drinkAttachRate;
     const drinkGross = drinkCount * drinkPrice;
     const drinkVariableCost = drinkCount * drinkCost;
@@ -1545,7 +1588,7 @@ function EventsRevenue({
       Number(eventType.crew_lead_bonus);
     const netBeforeFixed = gross + drinkGross - foodCost - drinkVariableCost - labor;
 
-    return { ...eventType, drinkGross, foodCost, gross, labor, netBeforeFixed };
+    return { ...eventType, drinkGross, foodCost, gross, labor, netBeforeFixed, proteinCost };
   });
   const eventMetricsByType = new Map(calculatedEventTypes.map((eventType) => [eventType.type, eventType]));
   const plans = [...new Set(annualPlanEvents.map((row) => row.plan_name))].map((planName) => {
@@ -1586,6 +1629,10 @@ function EventsRevenue({
                   <div>
                     <span>Net before fixed</span>
                     <strong>{formatCurrency(et.netBeforeFixed)}</strong>
+                  </div>
+                  <div>
+                    <span>Protein cost</span>
+                    <strong>{formatCurrency(et.proteinCost)}</strong>
                   </div>
                   <div>
                     <span>Cost rate</span>
@@ -1684,9 +1731,10 @@ function EventsRevenue({
       <section className="panel">
         <p className="muted" style={{ margin: 0 }}>
           Average menu cost is <strong>{formatCurrency(averageMenuCost)}</strong>, average menu
-          price is <strong>{formatCurrency(menuPrice)}</strong>, and monthly fixed operating
-          assumptions total <strong>{formatCurrency(monthlyFixedCosts)}</strong>. These values are
-          recalculated from Ingredients, Recipes, Menu Items, and Cost Library.
+          protein cost is <strong>{formatCurrency(averageProteinCost)}</strong>, average menu price
+          is <strong>{formatCurrency(menuPrice)}</strong>, and monthly fixed operating assumptions
+          total <strong>{formatCurrency(monthlyFixedCosts)}</strong>. These values are recalculated
+          from Ingredients, Recipes, Menu Items, and Cost Library.
         </p>
       </section>
     </div>
