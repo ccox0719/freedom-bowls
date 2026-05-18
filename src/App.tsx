@@ -1579,17 +1579,17 @@ function PrepPlanner({
         Quantities include {bufferPercent.toFixed(0)}% buffer and are shown in grams first for scale prep.
       </p>
 
-      <div className="field-grid" style={{ marginBottom: '1rem' }}>
+      <div className="select-button-grid" style={{ marginBottom: '1rem' }}>
         {menuItems.map((item) => (
-          <label key={item.id} style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal' }}>
-            <input
-              type="checkbox"
-              checked={selectedMenuIds.has(item.id)}
-              onChange={() => toggle(item.id)}
-              style={{ width: 'auto', minHeight: 'auto' }}
-            />
+          <button
+            aria-pressed={selectedMenuIds.has(item.id)}
+            className={`select-button ${selectedMenuIds.has(item.id) ? 'active' : ''}`}
+            key={item.id}
+            type="button"
+            onClick={() => toggle(item.id)}
+          >
             {item.name}
-          </label>
+          </button>
         ))}
       </div>
 

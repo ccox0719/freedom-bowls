@@ -266,6 +266,30 @@ label {
   padding: 0.4rem 0.75rem;
 }
 
+.select-button-grid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.select-button {
+  background: #f4efe5;
+  border: 1px solid #d8cfbd;
+  color: #342f27;
+  justify-content: flex-start;
+  line-height: 1.2;
+  min-height: 48px;
+  padding: 0.65rem 0.8rem;
+  text-align: left;
+}
+
+.select-button.active,
+.select-button[aria-pressed="true"] {
+  background: #1f6f58;
+  border-color: #1f6f58;
+  color: white;
+}
+
 /* ── Tables ────────────────────────────────────────────────────────────────── */
 
 .table-wrap {
