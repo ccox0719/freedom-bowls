@@ -19,6 +19,7 @@ import {
   calculateIngredientCost,
   calculateRecipeCosts,
   formatCurrency,
+  recipeYieldInGallons,
   type RecipeIngredient,
 } from './lib/costs';
 
@@ -628,7 +629,15 @@ export function App() {
             />
           )}
 
-          {activeTab === 'prep' && <PrepPlanner recipes={recipes} eventTypes={eventTypes} />}
+          {activeTab === 'prep' && (
+            <PrepPlanner
+              eventTypes={eventTypes}
+              ingredients={ingredients}
+              menuItemComponents={menuItemComponents}
+              menuItems={menuItems}
+              recipes={recipes}
+            />
+          )}
 
           {activeTab === 'events' && (
             <EventsRevenue
@@ -1434,12 +1443,24 @@ function MenuItemManager({
 
 // ── Prep Planner ──────────────────────────────────────────────────────────────
 
-function PrepPlanner({ recipes, eventTypes }: { recipes: Recipe[]; eventTypes: EventType[] }) {
+function PrepPlanner({
+  eventTypes,
+  ingredients,
+  menuItemComponents,
+  menuItems,
+  recipes,
+}: {
+  eventTypes: EventType[];
+  ingredients: Ingredient[];
+  menuItemComponents: MenuItemComponent[];
+  menuItems: MenuItem[];
+  recipes: Recipe[];
+}) {
   const [covers, setCovers] = useState('150');
-  const [checked, setChecked] = useState<Set<string>>(new Set(recipes.map((r) => r.id)));
+  const [selectedMenuIds, setSelectedMenuIds] = useState<Set<string>>(new Set());
 
   const toggle = (id: string) => {
-    setChecked((prev) => {
+    setSelectedMenuIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -1447,13 +1468,52 @@ function PrepPlanner({ recipes, eventTypes }: { recipes: Recipe[]; eventTypes: E
     });
   };
 
+  useEffect(() => {
+    setSelectedMenuIds((current) => {
+      if (current.size > 0 || menuItems.length === 0) return current;
+      return new Set(menuItems.map((item) => item.id));
+    });
+  }, [menuItems]);
+
   const coversNum = Math.max(1, Number(covers) || 1);
+  const selectedMenus = menuItems.filter((item) => selectedMenuIds.has(item.id));
+  const coversPerMenuItem = coversNum / Math.max(1, selectedMenus.length);
+  const selectedComponents = menuItemComponents.filter((component) =>
+    selectedMenuIds.has(component.menu_item_id),
+  );
+  const proteinPrepRows = Object.values(
+    selectedComponents
+      .filter((component) => component.component_type === 'ingredient' && getComponentGroup(component) === 'Protein')
+      .reduce<Record<string, { ingredient: Ingredient; grams: number }>>((acc, component) => {
+        const ingredient =
+          component.ingredients ?? ingredients.find((item) => item.id === component.ingredient_id);
+        if (!ingredient) return acc;
+
+        const current = acc[ingredient.id] ?? { ingredient, grams: 0 };
+        current.grams += Number(component.amount) * coversPerMenuItem;
+        acc[ingredient.id] = current;
+        return acc;
+      }, {}),
+  );
+  const recipePrepRows = Object.values(
+    selectedComponents
+      .filter((component) => component.component_type === 'recipe' && component.recipe_id)
+      .reduce<Record<string, { recipe: Recipe; ounces: number }>>((acc, component) => {
+        const recipe = component.recipes ?? recipes.find((item) => item.id === component.recipe_id);
+        if (!recipe) return acc;
+
+        const current = acc[recipe.id] ?? { recipe, ounces: 0 };
+        current.ounces += Number(component.amount) * coversPerMenuItem;
+        acc[recipe.id] = current;
+        return acc;
+      }, {}),
+  );
 
   return (
     <section className="panel">
       <h2>Prep Planner</h2>
       <p className="muted" style={{ marginTop: 0 }}>
-        Enter expected covers and see how many batches of each sauce / recipe to make.
+        Enter expected covers and select the menu mix to calculate sauce batches and raw protein needs.
       </p>
 
       <div className="prep-top">
@@ -1481,15 +1541,15 @@ function PrepPlanner({ recipes, eventTypes }: { recipes: Recipe[]; eventTypes: E
       </div>
 
       <div className="field-grid" style={{ marginBottom: '1rem' }}>
-        {recipes.map((r) => (
-          <label key={r.id} style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal' }}>
+        {menuItems.map((item) => (
+          <label key={item.id} style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal' }}>
             <input
               type="checkbox"
-              checked={checked.has(r.id)}
-              onChange={() => toggle(r.id)}
+              checked={selectedMenuIds.has(item.id)}
+              onChange={() => toggle(item.id)}
               style={{ width: 'auto', minHeight: 'auto' }}
             />
-            {r.name}
+            {item.name}
           </label>
         ))}
       </div>
@@ -1498,33 +1558,57 @@ function PrepPlanner({ recipes, eventTypes }: { recipes: Recipe[]; eventTypes: E
         <table>
           <thead>
             <tr>
-              <th>Recipe</th>
-              <th>Batch size</th>
+              <th>Sauce / Recipe</th>
+              <th>Needed</th>
+              <th>Batch yield</th>
               <th>Batches needed</th>
-              <th>Total yield</th>
             </tr>
           </thead>
           <tbody>
-            {recipes
-              .filter((r) => checked.has(r.id))
-              .map((r) => {
-                const batchServings = r.servings ?? 1;
-                const batches = Math.ceil(coversNum / batchServings);
-                const yieldLabel =
-                  r.yield_amount && r.yield_unit
-                    ? `${(Number(r.yield_amount) * batches).toFixed(1)} ${r.yield_unit}`
-                    : '—';
+            {recipePrepRows.map(({ recipe, ounces }) => {
+                const batchOunces = (recipeYieldInGallons(recipe) ?? 0) * 128;
+                const batches = batchOunces > 0 ? Math.ceil(ounces / batchOunces) : null;
                 return (
-                  <tr key={r.id}>
-                    <td>{r.name}</td>
-                    <td>{batchServings} servings</td>
+                  <tr key={recipe.id}>
+                    <td>{recipe.name}</td>
+                    <td>{ounces.toFixed(1)} oz</td>
+                    <td>{batchOunces > 0 ? `${batchOunces.toFixed(0)} oz` : '—'}</td>
                     <td>
-                      <strong>{batches}</strong>
+                      <strong>{batches ?? '—'}</strong>
                     </td>
-                    <td>{yieldLabel}</td>
                   </tr>
                 );
               })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="table-wrap" style={{ marginTop: '1rem' }}>
+        <table>
+          <thead>
+            <tr>
+              <th>Protein</th>
+              <th>Needed</th>
+              <th>Purchase unit</th>
+              <th>Estimated cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {proteinPrepRows.map(({ ingredient, grams }) => (
+              <tr key={ingredient.id}>
+                <td>{ingredient.name}</td>
+                <td>
+                  {(grams / 453.59237).toFixed(2)} lb <span className="muted">({grams.toFixed(0)} g)</span>
+                </td>
+                <td>{ingredient.purchase_unit}</td>
+                <td>{formatCurrency(grams * Number(ingredient.cost_per_gram ?? 0))}</td>
+              </tr>
+            ))}
+            {proteinPrepRows.length === 0 && (
+              <tr>
+                <td colSpan={4}>No protein components found for the selected menu mix.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
