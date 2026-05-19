@@ -94,6 +94,40 @@ th {
   margin-bottom: 1rem;
 }
 
+.topbar-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.quick-access-wrap {
+  position: relative;
+}
+
+.quick-access-menu {
+  background: #fffaf1;
+  border: 1px solid #ded4c3;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(40, 32, 20, 0.14);
+  display: grid;
+  gap: 0.35rem;
+  min-width: 220px;
+  padding: 0.5rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 20;
+}
+
+.quick-access-item {
+  background: #f4efe5;
+  color: #342f27;
+  justify-content: flex-start;
+  min-height: 36px;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+
 .topbar h1 {
   font-size: clamp(1.5rem, 4vw, 2.8rem);
   letter-spacing: 0;
@@ -430,6 +464,52 @@ label {
   padding: 0.35rem 0.45rem;
 }
 
+/* ── Startup & Tax ─────────────────────────────────────────────────────────── */
+
+.startup-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.6fr);
+}
+
+.startup-grid > .panel:first-child,
+.startup-table-panel {
+  grid-column: 1 / -1;
+}
+
+.startup-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+
+.startup-group {
+  border-top: 1px solid #e2dacd;
+  padding-top: 1rem;
+}
+
+.startup-group + .startup-group {
+  margin-top: 1rem;
+}
+
+.startup-group-heading {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.startup-group-heading h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.startup-group-heading span {
+  color: #635b50;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
 /* ── Events & Revenue ──────────────────────────────────────────────────────── */
 
 .event-type-grid {
@@ -604,6 +684,14 @@ label {
 
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .startup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .startup-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

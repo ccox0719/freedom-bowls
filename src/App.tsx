@@ -3,12 +3,15 @@ import {
   BookOpen,
   Calculator,
   ClipboardList,
+  Menu,
   FileSpreadsheet,
   Library,
   Loader2,
   Plus,
   RefreshCw,
   Save,
+  Tags,
+  CheckSquare2,
   Trash2,
   TrendingUp,
   Utensils,
@@ -36,6 +39,8 @@ type MenuItemComponent = Tables<'menu_item_components'> & {
 type CostAssumption = Tables<'cost_assumptions'>;
 type EventType = Tables<'event_types'>;
 type AnnualPlanEvent = Tables<'annual_plan_events'>;
+type StartupCost = Tables<'startup_costs'>;
+type StartupChecklistItem = Tables<'startup_checklist_items'>;
 type Tab =
   | 'ingredients'
   | 'builder'
@@ -43,6 +48,8 @@ type Tab =
   | 'menu'
   | 'prep'
   | 'events'
+  | 'startup'
+  | 'checklist'
   | 'assumptions';
 
 type IngredientForm = {
@@ -88,6 +95,35 @@ type ComponentForm = {
   amount: string;
 };
 
+type StartupCostForm = {
+  id?: string;
+  item: string;
+  group_name: string;
+  practical_category: string;
+  tax_treatment: string;
+  budget_status: 'included' | 'alternative' | 'optional' | 'reserve';
+  low_estimate: string;
+  high_estimate: string;
+  actual_amount: string;
+  vendor: string;
+  purchase_date: string;
+  placed_in_service_date: string;
+  documentation_needed: string;
+  notes: string;
+};
+
+type StartupChecklistForm = {
+  id?: string;
+  phase: string;
+  task: string;
+  status: 'todo' | 'doing' | 'blocked' | 'done';
+  priority: string;
+  due_date: string;
+  completed_at: string;
+  owner: string;
+  notes: string;
+};
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const emptyIngredientForm: IngredientForm = {
@@ -130,6 +166,33 @@ const emptyComponentForm: ComponentForm = {
   amount: '',
 };
 
+const emptyStartupCostForm: StartupCostForm = {
+  item: '',
+  group_name: 'Cooking equipment',
+  practical_category: '',
+  tax_treatment: '',
+  budget_status: 'included',
+  low_estimate: '',
+  high_estimate: '',
+  actual_amount: '',
+  vendor: '',
+  purchase_date: '',
+  placed_in_service_date: '',
+  documentation_needed: '',
+  notes: '',
+};
+
+const emptyStartupChecklistForm: StartupChecklistForm = {
+  phase: 'Planning',
+  task: '',
+  status: 'todo',
+  priority: '3',
+  due_date: '',
+  completed_at: '',
+  owner: '',
+  notes: '',
+};
+
 const tabs: { id: Tab; label: string; icon: typeof Library }[] = [
   { id: 'ingredients', label: 'Ingredients', icon: Library },
   { id: 'builder', label: 'Recipe Builder', icon: BookOpen },
@@ -137,6 +200,8 @@ const tabs: { id: Tab; label: string; icon: typeof Library }[] = [
   { id: 'menu', label: 'Menu Items', icon: Utensils },
   { id: 'prep', label: 'Prep Planner', icon: ClipboardList },
   { id: 'events', label: 'Events & Revenue', icon: TrendingUp },
+  { id: 'startup', label: 'Startup & Tax', icon: Tags },
+  { id: 'checklist', label: 'Startup Checklist', icon: CheckSquare2 },
   { id: 'assumptions', label: 'Cost Library', icon: FileSpreadsheet },
 ];
 
@@ -147,7 +212,9 @@ const toNullableNumber = (value: string) => (value.trim() ? Number(value) : null
 const isMissingBusinessSchema = (message: string) =>
   message.includes("Could not find the table 'public.cost_assumptions'") ||
   message.includes("Could not find the table 'public.event_types'") ||
-  message.includes("Could not find the table 'public.annual_plan_events'");
+  message.includes("Could not find the table 'public.annual_plan_events'") ||
+  message.includes("Could not find the table 'public.startup_costs'") ||
+  message.includes("Could not find the table 'public.startup_checklist_items'");
 
 const computeMenuItemCost = (
   components: MenuItemComponent[],
@@ -208,6 +275,8 @@ export function App() {
   const [costAssumptions, setCostAssumptions] = useState<CostAssumption[]>([]);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [annualPlanEvents, setAnnualPlanEvents] = useState<AnnualPlanEvent[]>([]);
+  const [startupCosts, setStartupCosts] = useState<StartupCost[]>([]);
+  const [startupChecklist, setStartupChecklist] = useState<StartupChecklistItem[]>([]);
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>('');
   const [selectedMenuItemId, setSelectedMenuItemId] = useState<string>('');
   const [ingredientForm, setIngredientForm] = useState<IngredientForm>(emptyIngredientForm);
@@ -215,9 +284,12 @@ export function App() {
   const [lineForm, setLineForm] = useState<LineForm>(emptyLineForm);
   const [menuItemForm, setMenuItemForm] = useState<MenuItemForm>(emptyMenuItemForm);
   const [componentForm, setComponentForm] = useState<ComponentForm>(emptyComponentForm);
+  const [startupCostForm, setStartupCostForm] = useState<StartupCostForm>(emptyStartupCostForm);
+  const [startupChecklistForm, setStartupChecklistForm] = useState<StartupChecklistForm>(emptyStartupChecklistForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [quickAccessOpen, setQuickAccessOpen] = useState(false);
 
   const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId) ?? null;
   const selectedRecipeLines = recipeLines.filter((l) => l.recipe_id === selectedRecipeId);
@@ -236,6 +308,12 @@ export function App() {
     ? calculateRecipeCosts(selectedRecipe, selectedRecipeLines)
     : null;
 
+  const startupQuickLinks: { id: Tab; label: string }[] = [
+    { id: 'startup', label: 'Startup & Tax' },
+    { id: 'checklist', label: 'Startup Checklist' },
+    { id: 'assumptions', label: 'Cost Library' },
+  ];
+
   const loadData = async () => {
     setLoading(true);
     setMessage('');
@@ -249,6 +327,8 @@ export function App() {
       assumptionsResult,
       eventTypesResult,
       annualPlansResult,
+      startupCostsResult,
+      startupChecklistResult,
     ] =
       await Promise.all([
         supabase.from('ingredients').select('*').order('name'),
@@ -265,6 +345,8 @@ export function App() {
         supabase.from('cost_assumptions').select('*').order('category').order('name'),
         supabase.from('event_types').select('*').order('type'),
         supabase.from('annual_plan_events').select('*').order('plan_name').order('event_type'),
+        supabase.from('startup_costs').select('*').order('group_name').order('item'),
+        supabase.from('startup_checklist_items').select('*').order('phase').order('priority').order('task'),
       ]);
 
     const criticalError =
@@ -274,7 +356,11 @@ export function App() {
       menuItemsResult.error ??
       componentsResult.error;
     const businessError =
-      assumptionsResult.error ?? eventTypesResult.error ?? annualPlansResult.error;
+      assumptionsResult.error ??
+      eventTypesResult.error ??
+      annualPlansResult.error ??
+      startupCostsResult.error ??
+      startupChecklistResult.error;
 
     if (criticalError) {
       setMessage(criticalError.message);
@@ -287,6 +373,8 @@ export function App() {
       setCostAssumptions(assumptionsResult.error ? [] : assumptionsResult.data ?? []);
       setEventTypes(eventTypesResult.error ? [] : eventTypesResult.data ?? []);
       setAnnualPlanEvents(annualPlansResult.error ? [] : annualPlansResult.data ?? []);
+      setStartupCosts(startupCostsResult.error ? [] : startupCostsResult.data ?? []);
+      setStartupChecklist(startupChecklistResult.error ? [] : startupChecklistResult.data ?? []);
       setSelectedRecipeId((c) => c || recipesResult.data?.[0]?.id || '');
       setSelectedMenuItemId((c) => c || menuItemsResult.data?.[0]?.id || '');
       if (businessError && !isMissingBusinessSchema(businessError.message)) {
@@ -513,6 +601,126 @@ export function App() {
     else await loadData();
   };
 
+  const saveStartupCost = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+
+    const payload: TablesInsert<'startup_costs'> | TablesUpdate<'startup_costs'> = {
+      item: startupCostForm.item.trim(),
+      group_name: startupCostForm.group_name.trim(),
+      practical_category: startupCostForm.practical_category.trim(),
+      tax_treatment: startupCostForm.tax_treatment.trim(),
+      budget_status: startupCostForm.budget_status,
+      low_estimate: toNumber(startupCostForm.low_estimate),
+      high_estimate: toNumber(startupCostForm.high_estimate),
+      actual_amount: toNullableNumber(startupCostForm.actual_amount),
+      vendor: startupCostForm.vendor.trim() || null,
+      purchase_date: startupCostForm.purchase_date || null,
+      placed_in_service_date: startupCostForm.placed_in_service_date || null,
+      documentation_needed: startupCostForm.documentation_needed.trim() || null,
+      notes: startupCostForm.notes.trim() || null,
+    };
+
+    const result = startupCostForm.id
+      ? await supabase.from('startup_costs').update(payload).eq('id', startupCostForm.id)
+      : await supabase.from('startup_costs').insert(payload as TablesInsert<'startup_costs'>);
+
+    setSaving(false);
+    if (result.error) { setMessage(result.error.message); return; }
+    setStartupCostForm(emptyStartupCostForm);
+    await loadData();
+  };
+
+  const editStartupCost = (cost: StartupCost) => {
+    setStartupCostForm({
+      id: cost.id,
+      item: cost.item,
+      group_name: cost.group_name,
+      practical_category: cost.practical_category,
+      tax_treatment: cost.tax_treatment,
+      budget_status: cost.budget_status,
+      low_estimate: String(cost.low_estimate),
+      high_estimate: String(cost.high_estimate),
+      actual_amount: cost.actual_amount === null ? '' : String(cost.actual_amount),
+      vendor: cost.vendor ?? '',
+      purchase_date: cost.purchase_date ?? '',
+      placed_in_service_date: cost.placed_in_service_date ?? '',
+      documentation_needed: cost.documentation_needed ?? '',
+      notes: cost.notes ?? '',
+    });
+  };
+
+  const deleteStartupCost = async (id: string) => {
+    if (!window.confirm('Delete this startup cost item?')) return;
+    setSaving(true);
+    const result = await supabase.from('startup_costs').delete().eq('id', id);
+    setSaving(false);
+    if (result.error) setMessage(result.error.message);
+    else await loadData();
+  };
+
+  const saveStartupChecklist = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+
+    const payload: TablesInsert<'startup_checklist_items'> | TablesUpdate<'startup_checklist_items'> = {
+      phase: startupChecklistForm.phase.trim(),
+      task: startupChecklistForm.task.trim(),
+      status: startupChecklistForm.status,
+      priority: Number(startupChecklistForm.priority || 3),
+      due_date: startupChecklistForm.due_date || null,
+      completed_at: startupChecklistForm.completed_at || null,
+      owner: startupChecklistForm.owner.trim() || null,
+      notes: startupChecklistForm.notes.trim() || null,
+    };
+
+    const result = startupChecklistForm.id
+      ? await supabase
+          .from('startup_checklist_items')
+          .update(payload)
+          .eq('id', startupChecklistForm.id)
+      : await supabase
+          .from('startup_checklist_items')
+          .insert(payload as TablesInsert<'startup_checklist_items'>);
+
+    setSaving(false);
+    if (result.error) {
+      setMessage(result.error.message);
+      return;
+    }
+
+    setStartupChecklistForm(emptyStartupChecklistForm);
+    await loadData();
+  };
+
+  const editStartupChecklist = (item: StartupChecklistItem) => {
+    setStartupChecklistForm({
+      id: item.id,
+      phase: item.phase,
+      task: item.task,
+      status: item.status,
+      priority: String(item.priority),
+      due_date: item.due_date ?? '',
+      completed_at: item.completed_at ? item.completed_at.slice(0, 10) : '',
+      owner: item.owner ?? '',
+      notes: item.notes ?? '',
+    });
+  };
+
+  const deleteStartupChecklist = async (id: string) => {
+    if (!window.confirm('Delete this checklist item?')) return;
+    setSaving(true);
+    const result = await supabase.from('startup_checklist_items').delete().eq('id', id);
+    setSaving(false);
+    if (result.error) setMessage(result.error.message);
+    else await loadData();
+  };
+
+  const openQuickSection = (tab: Tab) => {
+    setActiveTab(tab);
+    setQuickAccessOpen(false);
+  };
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -520,9 +728,37 @@ export function App() {
           <p className="eyebrow">Freedom Bowls</p>
           <h1>Food Truck Ops</h1>
         </div>
-        <button className="icon-button" type="button" onClick={loadData} title="Refresh data">
-          <RefreshCw size={18} />
-        </button>
+        <div className="topbar-actions">
+          <div className="quick-access-wrap">
+            <button
+              className="icon-button"
+              type="button"
+              onClick={() => setQuickAccessOpen((current) => !current)}
+              title="Quick access"
+              aria-expanded={quickAccessOpen}
+              aria-haspopup="menu"
+            >
+              <Menu size={18} />
+            </button>
+            {quickAccessOpen && (
+              <div className="quick-access-menu" role="menu" aria-label="Startup shortcuts">
+                {startupQuickLinks.map((link) => (
+                  <button
+                    key={link.id}
+                    className="quick-access-item"
+                    type="button"
+                    onClick={() => openQuickSection(link.id)}
+                  >
+                    {link.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button className="icon-button" type="button" onClick={loadData} title="Refresh data">
+            <RefreshCw size={18} />
+          </button>
+        </div>
       </header>
 
       {!hasSupabaseConfig && (
@@ -656,6 +892,32 @@ export function App() {
               menuItemComponents={menuItemComponents}
               menuItems={menuItems}
               recipeCostById={recipeCostById}
+            />
+          )}
+
+          {activeTab === 'startup' && (
+            <StartupTaxPlanner
+              rows={startupCosts}
+              form={startupCostForm}
+              saving={saving}
+              onFormChange={setStartupCostForm}
+              onSave={saveStartupCost}
+              onEdit={editStartupCost}
+              onDelete={deleteStartupCost}
+              onCancel={() => setStartupCostForm(emptyStartupCostForm)}
+            />
+          )}
+
+          {activeTab === 'checklist' && (
+            <StartupChecklistView
+              rows={startupChecklist}
+              form={startupChecklistForm}
+              saving={saving}
+              onFormChange={setStartupChecklistForm}
+              onSave={saveStartupChecklist}
+              onEdit={editStartupChecklist}
+              onDelete={deleteStartupChecklist}
+              onCancel={() => setStartupChecklistForm(emptyStartupChecklistForm)}
             />
           )}
 
@@ -1925,6 +2187,502 @@ function EventsRevenue({
           total <strong>{formatCurrency(monthlyFixedCosts)}</strong>. These values are recalculated
           from Ingredients, Recipes, Menu Items, and Cost Library.
         </p>
+      </section>
+    </div>
+  );
+}
+
+// ── Startup & Tax Planner ────────────────────────────────────────────────────
+
+function StartupTaxPlanner({
+  rows,
+  form,
+  saving,
+  onFormChange,
+  onSave,
+  onEdit,
+  onDelete,
+  onCancel,
+}: {
+  rows: StartupCost[];
+  form: StartupCostForm;
+  saving: boolean;
+  onFormChange: (form: StartupCostForm) => void;
+  onSave: (event: FormEvent) => void;
+  onEdit: (row: StartupCost) => void;
+  onDelete: (id: string) => void;
+  onCancel: () => void;
+}) {
+  const groups = [...new Set(rows.map((row) => row.group_name))];
+  const budgetRows = rows.filter((row) => row.budget_status === 'included' || row.budget_status === 'reserve');
+  const alternativeRows = rows.filter((row) => row.budget_status === 'alternative');
+  const estimatedLow = budgetRows.reduce((total, row) => total + Number(row.low_estimate ?? 0), 0);
+  const estimatedHigh = budgetRows.reduce((total, row) => total + Number(row.high_estimate ?? 0), 0);
+  const actualTotal = budgetRows.reduce((total, row) => total + Number(row.actual_amount ?? 0), 0);
+  const alternativeLow = alternativeRows.reduce((total, row) => total + Number(row.low_estimate ?? 0), 0);
+  const alternativeHigh = alternativeRows.reduce((total, row) => total + Number(row.high_estimate ?? 0), 0);
+  const likelyDepreciable = budgetRows
+    .filter((row) =>
+      /depreciable|section 179|bonus|vehicle|buildout|equipment/i.test(row.tax_treatment),
+    )
+    .reduce((total, row) => total + Number(row.actual_amount ?? row.low_estimate ?? 0), 0);
+  const depositsAndReserves = budgetRows
+    .filter((row) => /deposit|cash reserve|not a deduction/i.test(row.tax_treatment))
+    .reduce((total, row) => total + Number(row.actual_amount ?? row.low_estimate ?? 0), 0);
+  const lowRemaining = Math.max(0, estimatedLow - actualTotal);
+  const highRemaining = Math.max(0, estimatedHigh - actualTotal);
+
+  return (
+    <div className="startup-grid">
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Startup & Tax Plan</h2>
+            <p className="muted" style={{ margin: 0 }}>
+              Supabase-backed startup costs from the plan, editable from any connected app.
+            </p>
+          </div>
+        </div>
+        {rows.length === 0 && (
+          <p className="muted" style={{ marginTop: 0 }}>
+            Apply the startup costs migration to upload the Markdown budget into Supabase.
+          </p>
+        )}
+        <div className="metrics-grid startup-metrics">
+          <Metric label="Estimate low" value={formatCurrency(estimatedLow)} />
+          <Metric label="Estimate high" value={formatCurrency(estimatedHigh)} />
+          <Metric label="Actual logged" value={formatCurrency(actualTotal)} />
+          <Metric label="Low budget left" value={formatCurrency(lowRemaining)} />
+          <Metric label="High budget left" value={formatCurrency(highRemaining)} />
+          <Metric label="Likely depreciable" value={formatCurrency(likelyDepreciable)} />
+          <Metric label="Deposits / reserves" value={formatCurrency(depositsAndReserves)} />
+          <Metric label="Alternatives" value={`${formatCurrency(alternativeLow)}-${formatCurrency(alternativeHigh)}`} />
+        </div>
+      </section>
+
+      <form className="panel form-panel" onSubmit={onSave}>
+        <h2>{form.id ? 'Edit Startup Cost' : 'Add Startup Cost'}</h2>
+        <label>
+          Item
+          <input
+            value={form.item}
+            onChange={(event) => onFormChange({ ...form, item: event.target.value })}
+            required
+          />
+        </label>
+        <div className="field-grid">
+          <label>
+            Group
+            <input
+              value={form.group_name}
+              onChange={(event) => onFormChange({ ...form, group_name: event.target.value })}
+              required
+            />
+          </label>
+          <label>
+            Practical category
+            <input
+              value={form.practical_category}
+              onChange={(event) =>
+                onFormChange({ ...form, practical_category: event.target.value })
+              }
+              required
+            />
+          </label>
+        </div>
+        <label>
+          Tax treatment to review
+          <textarea
+            value={form.tax_treatment}
+            onChange={(event) => onFormChange({ ...form, tax_treatment: event.target.value })}
+            required
+          />
+        </label>
+        <label>
+          Budget status
+          <select
+            value={form.budget_status}
+            onChange={(event) =>
+              onFormChange({
+                ...form,
+                budget_status: event.target.value as StartupCostForm['budget_status'],
+              })
+            }
+          >
+            <option value="included">Included</option>
+            <option value="alternative">Alternative</option>
+            <option value="optional">Optional</option>
+            <option value="reserve">Reserve</option>
+          </select>
+        </label>
+        <div className="field-grid">
+          <label>
+            Low estimate
+            <input
+              min="0"
+              step="0.01"
+              type="number"
+              value={form.low_estimate}
+              onChange={(event) => onFormChange({ ...form, low_estimate: event.target.value })}
+              required
+            />
+          </label>
+          <label>
+            High estimate
+            <input
+              min="0"
+              step="0.01"
+              type="number"
+              value={form.high_estimate}
+              onChange={(event) => onFormChange({ ...form, high_estimate: event.target.value })}
+              required
+            />
+          </label>
+        </div>
+        <div className="field-grid">
+          <label>
+            Actual amount
+            <input
+              min="0"
+              step="0.01"
+              type="number"
+              value={form.actual_amount}
+              onChange={(event) => onFormChange({ ...form, actual_amount: event.target.value })}
+            />
+          </label>
+          <label>
+            Vendor
+            <input
+              value={form.vendor}
+              onChange={(event) => onFormChange({ ...form, vendor: event.target.value })}
+            />
+          </label>
+        </div>
+        <div className="field-grid">
+          <label>
+            Purchase date
+            <input
+              type="date"
+              value={form.purchase_date}
+              onChange={(event) => onFormChange({ ...form, purchase_date: event.target.value })}
+            />
+          </label>
+          <label>
+            Placed in service
+            <input
+              type="date"
+              value={form.placed_in_service_date}
+              onChange={(event) =>
+                onFormChange({ ...form, placed_in_service_date: event.target.value })
+              }
+            />
+          </label>
+        </div>
+        <label>
+          Documentation needed
+          <input
+            value={form.documentation_needed}
+            onChange={(event) =>
+              onFormChange({ ...form, documentation_needed: event.target.value })
+            }
+          />
+        </label>
+        <label>
+          Notes
+          <textarea
+            value={form.notes}
+            onChange={(event) => onFormChange({ ...form, notes: event.target.value })}
+          />
+        </label>
+        <div className="button-row">
+          <button type="submit" disabled={saving}>
+            <Save size={17} />
+            {form.id ? 'Update cost' : 'Save cost'}
+          </button>
+          {form.id && (
+            <button className="secondary" type="button" onClick={onCancel}>
+              Clear
+            </button>
+          )}
+        </div>
+      </form>
+
+      <section className="panel startup-table-panel">
+        <h2>Cost Lines</h2>
+        {groups.map((group) => {
+          const groupRows = rows.filter((row) => row.group_name === group);
+          const groupBudgetRows = groupRows.filter(
+            (row) => row.budget_status === 'included' || row.budget_status === 'reserve',
+          );
+          const groupLow = groupBudgetRows.reduce((total, row) => total + Number(row.low_estimate ?? 0), 0);
+          const groupHigh = groupBudgetRows.reduce((total, row) => total + Number(row.high_estimate ?? 0), 0);
+          const groupActual = groupBudgetRows.reduce((total, row) => total + Number(row.actual_amount ?? 0), 0);
+
+          return (
+            <div className="startup-group" key={group}>
+              <div className="startup-group-heading">
+                <h3>{group}</h3>
+                <span>
+                  {formatCurrency(groupLow)}-{formatCurrency(groupHigh)}
+                  {groupActual > 0 ? ` · actual ${formatCurrency(groupActual)}` : ''}
+                </span>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Estimate</th>
+                      <th>Actual</th>
+                      <th>Status</th>
+                      <th>Category</th>
+                      <th>Tax treatment</th>
+                      <th>Docs</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupRows.map((row) => (
+                      <tr key={row.id}>
+                        <td>
+                          <strong>{row.item}</strong>
+                          {row.vendor && <div className="muted">{row.vendor}</div>}
+                        </td>
+                        <td>
+                          {formatCurrency(row.low_estimate)}-{formatCurrency(row.high_estimate)}
+                        </td>
+                        <td>{formatCurrency(row.actual_amount)}</td>
+                        <td>{row.budget_status}</td>
+                        <td>{row.practical_category}</td>
+                        <td>{row.tax_treatment}</td>
+                        <td>{row.documentation_needed || '—'}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.4rem' }}>
+                            <button
+                              className="text-button"
+                              type="button"
+                              onClick={() => onEdit(row)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="icon-button danger"
+                              type="button"
+                              onClick={() => onDelete(row.id)}
+                              title="Delete startup cost"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })}
+      </section>
+    </div>
+  );
+}
+
+// ── Startup Checklist ────────────────────────────────────────────────────────
+
+function StartupChecklistView({
+  rows,
+  form,
+  saving,
+  onFormChange,
+  onSave,
+  onEdit,
+  onDelete,
+  onCancel,
+}: {
+  rows: StartupChecklistItem[];
+  form: StartupChecklistForm;
+  saving: boolean;
+  onFormChange: (form: StartupChecklistForm) => void;
+  onSave: (event: FormEvent) => void;
+  onEdit: (row: StartupChecklistItem) => void;
+  onDelete: (id: string) => void;
+  onCancel: () => void;
+}) {
+  const completedCount = rows.filter((row) => row.status === 'done').length;
+  const blockedCount = rows.filter((row) => row.status === 'blocked').length;
+  const dueSoonCount = rows.filter((row) => row.due_date && row.status !== 'done').length;
+  const byPhase = [...new Set(rows.map((row) => row.phase))];
+
+  return (
+    <div className="startup-grid">
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Startup Checklist</h2>
+            <p className="muted" style={{ margin: 0 }}>
+              Track the launch steps that have to happen before the truck is live.
+            </p>
+          </div>
+        </div>
+        <div className="metrics-grid startup-metrics">
+          <Metric label="Total items" value={String(rows.length)} />
+          <Metric label="Done" value={String(completedCount)} />
+          <Metric label="Blocked" value={String(blockedCount)} />
+          <Metric label="Due soon" value={String(dueSoonCount)} />
+        </div>
+      </section>
+
+      <form className="panel form-panel" onSubmit={onSave}>
+        <h2>{form.id ? 'Edit Checklist Item' : 'Add Checklist Item'}</h2>
+        <label>
+          Task
+          <input
+            value={form.task}
+            onChange={(event) => onFormChange({ ...form, task: event.target.value })}
+            required
+          />
+        </label>
+        <div className="field-grid">
+          <label>
+            Phase
+            <input
+              value={form.phase}
+              onChange={(event) => onFormChange({ ...form, phase: event.target.value })}
+              required
+            />
+          </label>
+          <label>
+            Status
+            <select
+              value={form.status}
+              onChange={(event) =>
+                onFormChange({ ...form, status: event.target.value as StartupChecklistForm['status'] })
+              }
+            >
+              <option value="todo">Todo</option>
+              <option value="doing">Doing</option>
+              <option value="blocked">Blocked</option>
+              <option value="done">Done</option>
+            </select>
+          </label>
+        </div>
+        <div className="field-grid">
+          <label>
+            Priority
+            <input
+              min="1"
+              max="5"
+              type="number"
+              value={form.priority}
+              onChange={(event) => onFormChange({ ...form, priority: event.target.value })}
+            />
+          </label>
+          <label>
+            Owner
+            <input
+              value={form.owner}
+              onChange={(event) => onFormChange({ ...form, owner: event.target.value })}
+            />
+          </label>
+        </div>
+        <div className="field-grid">
+          <label>
+            Due date
+            <input
+              type="date"
+              value={form.due_date}
+              onChange={(event) => onFormChange({ ...form, due_date: event.target.value })}
+            />
+          </label>
+          <label>
+            Completed at
+            <input
+              type="date"
+              value={form.completed_at}
+              onChange={(event) => onFormChange({ ...form, completed_at: event.target.value })}
+            />
+          </label>
+        </div>
+        <label>
+          Notes
+          <textarea
+            value={form.notes}
+            onChange={(event) => onFormChange({ ...form, notes: event.target.value })}
+          />
+        </label>
+        <div className="button-row">
+          <button type="submit" disabled={saving}>
+            <Save size={17} />
+            {form.id ? 'Update item' : 'Save item'}
+          </button>
+          {form.id && (
+            <button className="secondary" type="button" onClick={onCancel}>
+              Clear
+            </button>
+          )}
+        </div>
+      </form>
+
+      <section className="panel startup-table-panel">
+        <h2>Checklist Items</h2>
+        {byPhase.map((phase) => {
+          const phaseRows = rows.filter((row) => row.phase === phase);
+          return (
+            <div className="startup-group" key={phase}>
+              <div className="startup-group-heading">
+                <h3>{phase}</h3>
+                <span>{phaseRows.length} items</span>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Task</th>
+                      <th>Status</th>
+                      <th>Priority</th>
+                      <th>Due</th>
+                      <th>Owner</th>
+                      <th>Notes</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {phaseRows.map((row) => (
+                      <tr key={row.id}>
+                        <td>{row.task}</td>
+                        <td>{row.status}</td>
+                        <td>{row.priority}</td>
+                        <td>{row.due_date || '—'}</td>
+                        <td>{row.owner || '—'}</td>
+                        <td>{row.notes || '—'}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.4rem' }}>
+                            <button
+                              className="text-button"
+                              type="button"
+                              onClick={() => onEdit(row)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="icon-button danger"
+                              type="button"
+                              onClick={() => onDelete(row.id)}
+                              title="Delete checklist item"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })}
       </section>
     </div>
   );

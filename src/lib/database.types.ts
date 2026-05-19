@@ -337,6 +337,105 @@ export type Database = {
           },
         ];
       };
+      startup_costs: {
+        Row: {
+          id: string;
+          item: string;
+          group_name: string;
+          practical_category: string;
+          tax_treatment: string;
+          budget_status: 'included' | 'alternative' | 'optional' | 'reserve';
+          low_estimate: number;
+          high_estimate: number;
+          actual_amount: number | null;
+          vendor: string | null;
+          purchase_date: string | null;
+          placed_in_service_date: string | null;
+          documentation_needed: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          item: string;
+          group_name: string;
+          practical_category: string;
+          tax_treatment: string;
+          budget_status?: 'included' | 'alternative' | 'optional' | 'reserve';
+          low_estimate?: number;
+          high_estimate?: number;
+          actual_amount?: number | null;
+          vendor?: string | null;
+          purchase_date?: string | null;
+          placed_in_service_date?: string | null;
+          documentation_needed?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          item?: string;
+          group_name?: string;
+          practical_category?: string;
+          tax_treatment?: string;
+          budget_status?: 'included' | 'alternative' | 'optional' | 'reserve';
+          low_estimate?: number;
+          high_estimate?: number;
+          actual_amount?: number | null;
+          vendor?: string | null;
+          purchase_date?: string | null;
+          placed_in_service_date?: string | null;
+          documentation_needed?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      startup_checklist_items: {
+        Row: {
+          id: string;
+          phase: string;
+          task: string;
+          status: 'todo' | 'doing' | 'blocked' | 'done';
+          priority: number;
+          due_date: string | null;
+          completed_at: string | null;
+          owner: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          phase: string;
+          task: string;
+          status?: 'todo' | 'doing' | 'blocked' | 'done';
+          priority?: number;
+          due_date?: string | null;
+          completed_at?: string | null;
+          owner?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          phase?: string;
+          task?: string;
+          status?: 'todo' | 'doing' | 'blocked' | 'done';
+          priority?: number;
+          due_date?: string | null;
+          completed_at?: string | null;
+          owner?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
