@@ -9,8 +9,8 @@ import {
   Plus,
   RefreshCw,
   Save,
-  TrendingUp,
   Trash2,
+  TrendingUp,
   Utensils,
 } from 'lucide-react';
 import { hasSupabaseConfig, supabase } from './lib/supabase';
@@ -42,7 +42,6 @@ type Tab =
   | 'costs'
   | 'menu'
   | 'prep'
-  | 'plan'
   | 'events'
   | 'assumptions';
 
@@ -137,29 +136,8 @@ const tabs: { id: Tab; label: string; icon: typeof Library }[] = [
   { id: 'costs', label: 'Recipe Costs', icon: Calculator },
   { id: 'menu', label: 'Menu Items', icon: Utensils },
   { id: 'prep', label: 'Prep Planner', icon: ClipboardList },
-  { id: 'plan', label: 'Payback Plan', icon: TrendingUp },
   { id: 'events', label: 'Events & Revenue', icon: TrendingUp },
   { id: 'assumptions', label: 'Cost Library', icon: FileSpreadsheet },
-];
-
-const startupCapitalCases = [
-  { label: 'Low', amount: 47000, note: 'Lean used trailer or favorable buildout' },
-  { label: 'Midpoint', amount: 61000, note: 'Practical planning case' },
-  { label: 'High', amount: 75000, note: 'More expensive truck/trailer or installation overruns' },
-];
-
-const paybackScenarios = [
-  { name: 'Low Stress Retirement Style', events: 63, gross: 116000, net: 36250 },
-  { name: 'Balanced First Year', events: 93, gross: 150500, net: 43625 },
-  { name: 'Aggressive Growth Year', events: 128, gross: 241000, net: 71975 },
-];
-
-const planEventTypes = [
-  { type: 'Community Pop-Up', gross: 1000, net: 250, hours: 6, staff: 2 },
-  { type: 'Brewery Night', gross: 1400, net: 375, hours: 5, staff: 2 },
-  { type: 'Corporate Lunch', gross: 1800, net: 550, hours: 4, staff: 2 },
-  { type: 'Festival Day', gross: 3000, net: 900, hours: 10, staff: 3 },
-  { type: 'Private Catering', gross: 2500, net: 800, hours: 5, staff: 2 },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -668,8 +646,6 @@ export function App() {
               recipes={recipes}
             />
           )}
-
-          {activeTab === 'plan' && <InvestmentPaybackPlan />}
 
           {activeTab === 'events' && (
             <EventsRevenue
@@ -1742,223 +1718,6 @@ function PrepPlanner({
         </div>
       )}
     </section>
-  );
-}
-
-// ── Investment Payback Plan ──────────────────────────────────────────────────
-
-function InvestmentPaybackPlan() {
-  const reserveRate = 0.2;
-  const midpointInvestment = startupCapitalCases[1].amount;
-  const balancedScenario = paybackScenarios[1];
-  const balancedCashAfterReserve = balancedScenario.net * (1 - reserveRate);
-  const monthlyPaybackTarget = midpointInvestment / 24;
-  const monthlyCashAvailable = balancedCashAfterReserve / 12;
-  const coverageRatio = monthlyCashAvailable / monthlyPaybackTarget;
-
-  const parentMenu = [
-    ['Operations', 'Truck build, equipment, prep model, service model, staffing'],
-    ['Menu and Production', 'Bowl concept, recipe system, throughput, food cost discipline'],
-    ['Sales and Revenue', 'Event types, sales channels, annual event plans'],
-    ['Financials and Payback', 'Startup capital, annual net, reserves, payback math'],
-    ['Investor Structure', 'Suggested raise, repayment method, reporting cadence'],
-    ['Risk Management', 'Key risks and operating controls'],
-  ];
-
-  return (
-    <div className="plan-page">
-      <section className="plan-hero">
-        <div>
-          <p className="eyebrow">Investment plan</p>
-          <h2>Freedom Bowls Payback Plan</h2>
-          <p>
-            A front-of-house business plan organized by parent menu sections, with the base
-            investment case tied to event economics and a 24-month payback target.
-          </p>
-        </div>
-        <div className="plan-hero-metrics">
-          <Metric label="Midpoint raise" value={formatCurrency(midpointInvestment)} />
-          <Metric label="Target payback" value="24 months" />
-          <Metric label="Base coverage" value={`${coverageRatio.toFixed(2)}x`} />
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>Parent Menu</h2>
-        <div className="parent-menu-grid">
-          {parentMenu.map(([heading, description]) => (
-            <div className="parent-menu-card" key={heading}>
-              <strong>{heading}</strong>
-              <span>{description}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Operations</h2>
-            <p className="muted" style={{ margin: 0 }}>
-              Direct-to-truck startup plan built for event service and high-throughput bowl assembly.
-            </p>
-          </div>
-        </div>
-        <div className="plan-two-column">
-          <div>
-            <h3>Truck Build and Equipment</h3>
-            <div className="table-wrap compact-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Capital case</th>
-                    <th>Amount</th>
-                    <th>Use case</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {startupCapitalCases.map((item) => (
-                    <tr key={item.label}>
-                      <td>{item.label}</td>
-                      <td>{formatCurrency(item.amount)}</td>
-                      <td>{item.note}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div className="plan-callout">
-            <h3>Service Model</h3>
-            <ul>
-              <li>Best fit: corporate lunches, catering, breweries, and festivals.</li>
-              <li>Primary flow: rice, protein, toppings, sauce, packaging.</li>
-              <li>Main bottleneck: protein finishing on the flat top.</li>
-              <li>Staffing: 2 people for standard events, 3 for festival days.</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>Menu and Production</h2>
-        <div className="control-grid">
-          {[
-            ['3 to 5 core bowls', 'Keeps ordering simple and service fast'],
-            ['2 to 3 proteins', 'Reduces flat-top bottlenecks'],
-            ['Rotating sauce feature', 'Adds variety without operational sprawl'],
-            ['Recipe costing system', 'Keeps ingredient costs tied to actual menu margin'],
-            ['Event prep lists', 'Reduces waste and missed pack-out items'],
-          ].map(([title, body]) => (
-            <div className="control-card" key={title}>
-              <strong>{title}</strong>
-              <span>{body}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>Sales and Revenue</h2>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Event type</th>
-                <th>Avg gross</th>
-                <th>Avg net</th>
-                <th>Hours</th>
-                <th>Staff</th>
-                <th>Events for $40k net</th>
-              </tr>
-            </thead>
-            <tbody>
-              {planEventTypes.map((eventType) => (
-                <tr key={eventType.type}>
-                  <td>{eventType.type}</td>
-                  <td>{formatCurrency(eventType.gross)}</td>
-                  <td>{formatCurrency(eventType.net)}</td>
-                  <td>{eventType.hours}</td>
-                  <td>{eventType.staff}</td>
-                  <td>{Math.ceil(40000 / eventType.net)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>Financials and Payback</h2>
-        <div className="scenario-grid">
-          {paybackScenarios.map((scenario) => {
-            const cashAfterReserve = scenario.net * (1 - reserveRate);
-            return (
-              <div className="scenario-card" key={scenario.name}>
-                <div className="sc-name">{scenario.name}</div>
-                <div className="sc-numbers">
-                  <div>
-                    <span>Gross</span>
-                    <strong>{formatCurrency(scenario.gross)}</strong>
-                  </div>
-                  <div>
-                    <span>Net</span>
-                    <strong>{formatCurrency(scenario.net)}</strong>
-                  </div>
-                </div>
-                <div className="sc-events">
-                  <div className="sc-event-row">
-                    <span>Total events</span>
-                    <strong>{scenario.events}</strong>
-                  </div>
-                  <div className="sc-event-row">
-                    <span>Cash after reserve</span>
-                    <strong>{formatCurrency(cashAfterReserve)}</strong>
-                  </div>
-                  <div className="sc-event-row">
-                    <span>Midpoint payback</span>
-                    <strong>{(midpointInvestment / cashAfterReserve).toFixed(1)} yrs</strong>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>Investor Structure</h2>
-        <div className="investment-structure">
-          <Metric label="Base investment" value={formatCurrency(midpointInvestment)} />
-          <Metric label="Monthly payback need" value={formatCurrency(monthlyPaybackTarget)} />
-          <Metric label="Balanced monthly cash" value={formatCurrency(monthlyCashAvailable)} />
-          <Metric label="Reserve policy" value="20%" />
-        </div>
-        <p className="muted" style={{ marginBottom: 0 }}>
-          Recommended structure: monthly distributions after reserve, capped until original capital
-          is repaid, with monthly event P&amp;L summaries and quarterly investor updates.
-        </p>
-      </section>
-
-      <section className="panel">
-        <h2>Risk Management</h2>
-        <div className="risk-grid">
-          {[
-            ['Buildout overruns', 'Use written vendor quotes and keep a contingency reserve.'],
-            ['Low early bookings', 'Pre-sell catering and build a 90-day event calendar before launch.'],
-            ['Food cost creep', 'Update ingredient costs monthly and monitor cost per bowl.'],
-            ['Labor inefficiency', 'Standardize prep lists, pack lists, and two-person service roles.'],
-            ['Weather and seasonality', 'Build indoor catering and private event pipeline.'],
-            ['Equipment downtime', 'Keep repair reserve and prioritize serviceable equipment.'],
-          ].map(([risk, control]) => (
-            <div className="risk-card" key={risk}>
-              <strong>{risk}</strong>
-              <span>{control}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
   );
 }
 
