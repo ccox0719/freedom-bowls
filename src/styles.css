@@ -538,6 +538,98 @@ label {
   padding-top: 0.5rem;
 }
 
+/* ── Investment plan ───────────────────────────────────────────────────────── */
+
+.plan-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.plan-hero {
+  align-items: stretch;
+  background: #fffaf1;
+  border: 1px solid #ded4c3;
+  border-radius: 8px;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.8fr);
+  padding: 1.1rem;
+}
+
+.plan-hero h2 {
+  font-size: clamp(1.45rem, 3vw, 2.4rem);
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.plan-hero p {
+  color: #4f473b;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 760px;
+}
+
+.plan-hero-metrics,
+.investment-structure {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.parent-menu-grid,
+.control-grid,
+.risk-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.parent-menu-card,
+.control-card,
+.risk-card,
+.plan-callout {
+  background: #f4efe5;
+  border: 1px solid #ddd5c4;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem;
+}
+
+.parent-menu-card strong,
+.control-card strong,
+.risk-card strong,
+.plan-callout h3,
+.plan-two-column h3 {
+  color: #1f3f35;
+  font-size: 0.96rem;
+  margin: 0;
+}
+
+.parent-menu-card span,
+.control-card span,
+.risk-card span {
+  color: #635b50;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.plan-two-column {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+}
+
+.plan-callout ul {
+  color: #4f473b;
+  display: grid;
+  gap: 0.5rem;
+  line-height: 1.4;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
 /* ── Misc ──────────────────────────────────────────────────────────────────── */
 
 .menu-total {
@@ -629,8 +721,25 @@ label {
     grid-template-columns: 1fr;
   }
 
+  .plan-hero,
+  .plan-two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-hero-metrics,
+  .investment-structure {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .prep-top {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .plan-hero-metrics,
+  .investment-structure {
+    grid-template-columns: 1fr;
   }
 }
