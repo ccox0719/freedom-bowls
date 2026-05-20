@@ -23,9 +23,9 @@
         { "item": "Greek yogurt", "amount": 12, "unit": "cups" },
         { "item": "Cilantro", "amount": 16, "unit": "bunches" },
         { "item": "Jalapeños", "amount": 31, "unit": "whole" },
-        { "item": "Garlic cloves", "amount": 47, "unit": "cloves" },
+        { "item": "Garlic", "amount": 47, "unit": "cloves" },
         { "item": "Limes", "amount": 16, "unit": "whole" },
-        { "item": "Ground cumin", "amount": 7.5, "unit": "tbsp" },
+        { "item": "Cumin", "amount": 7.5, "unit": "tbsp" },
         { "item": "Salt", "amount": 2.5, "unit": "tbsp" }
       ]
     },
@@ -84,7 +84,7 @@
       "ingredients": [
         { "item": "Greek yogurt", "amount": 6, "unit": "quarts" },
         { "item": "Cucumbers", "amount": 6, "unit": "whole" },
-        { "item": "Garlic cloves", "amount": 12, "unit": "cloves" },
+        { "item": "Garlic", "amount": 12, "unit": "cloves" },
         { "item": "Fresh dill", "amount": 0.5, "unit": "cups" },
         { "item": "Lemon juice", "amount": 0.75, "unit": "cups" },
         { "item": "Olive oil", "amount": 0.75, "unit": "cups" },
@@ -105,7 +105,7 @@
         { "item": "Water", "amount": 8, "unit": "cups" },
         { "item": "Yellow mustard", "amount": 4, "unit": "cups" },
         { "item": "Salt", "amount": 0.25, "unit": "cups" },
-        { "item": "Ground allspice", "amount": 2, "unit": "tsp" }
+        { "item": "Allspice", "amount": 2, "unit": "tsp" }
       ]
     },
     {

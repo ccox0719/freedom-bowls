@@ -112,7 +112,14 @@ function slugEventKey(type) {
 }
 
 function normalizeName(name) {
-  return name === 'Mustardy Habanero Hot Sauce (tamed)' ? 'Mustardy Habanero Hot Sauce' : name;
+  const aliases = {
+    'Mustardy Habanero Hot Sauce (tamed)': 'Mustardy Habanero Hot Sauce',
+    'Garlic cloves': 'Garlic',
+    'Ground cumin': 'Cumin',
+    'Ground allspice': 'Allspice',
+  };
+
+  return aliases[name] ?? name;
 }
 
 function unitToGrams(unit) {
