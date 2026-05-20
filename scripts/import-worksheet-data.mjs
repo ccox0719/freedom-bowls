@@ -4,6 +4,12 @@ import { createClient } from '@supabase/supabase-js';
 
 const root = process.cwd();
 const gramsByUnit = {
+  mg: 0.001,
+  milligram: 0.001,
+  milligrams: 0.001,
+  kg: 1000,
+  kilogram: 1000,
+  kilograms: 1000,
   lb: 453.59237,
   lbs: 453.59237,
   pound: 453.59237,
@@ -18,6 +24,7 @@ const gramsByUnit = {
   cups: 236.5882365,
   tbsp: 14.7867648,
   Tbsp: 14.7867648,
+  tbs: 14.7867648,
   tsp: 4.92892159,
   oz: 28.3495231,
   ounce: 28.3495231,

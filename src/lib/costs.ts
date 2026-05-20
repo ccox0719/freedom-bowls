@@ -16,6 +16,25 @@ export type CostLine = {
   lineCost: number;
 };
 
+const weightGramsByUnit: Record<string, number> = {
+  g: 1,
+  gram: 1,
+  grams: 1,
+  kg: 1000,
+  kilogram: 1000,
+  kilograms: 1000,
+  mg: 0.001,
+  milligram: 0.001,
+  milligrams: 0.001,
+  oz: 28.349523125,
+  ounce: 28.349523125,
+  ounces: 28.349523125,
+  lb: 453.59237,
+  lbs: 453.59237,
+  pound: 453.59237,
+  pounds: 453.59237,
+};
+
 const gallonsByUnit: Record<string, number> = {
   gallon: 1,
   gallons: 1,
@@ -34,6 +53,13 @@ const gallonsByUnit: Record<string, number> = {
 
 export const roundCurrency = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
+export const normalizeUnit = (unit: string | null | undefined) => unit?.trim().toLowerCase() ?? '';
+
+export const gramsFromWeightUnit = (amount: number, unit: string | null | undefined) => {
+  const factor = weightGramsByUnit[normalizeUnit(unit)];
+  return factor ? amount * factor : null;
+};
+
 export const formatCurrency = (value: number | null | undefined) => {
   if (value === null || value === undefined || Number.isNaN(value)) return 'n/a';
   return new Intl.NumberFormat('en-US', {
@@ -44,13 +70,26 @@ export const formatCurrency = (value: number | null | undefined) => {
   }).format(roundCurrency(value));
 };
 
+export const formatCurrencyPerGram = (value: number | null | undefined) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return 'n/a';
+  return `${new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  }).format(value)}/g`;
+};
+
 export const calculateIngredientCost = (gramsUsed: number, costPerGram: number) =>
   gramsUsed * costPerGram;
 
 export const buildCostLines = (recipeIngredients: RecipeIngredient[]): CostLine[] =>
   recipeIngredients.map((line) => {
     const costPerGram = Number(line.ingredients?.cost_per_gram ?? 0);
-    const gramsUsed = Number(line.grams_used ?? 0);
+    const gramsUsed =
+      Number(line.grams_used ?? 0) ||
+      gramsFromWeightUnit(Number(line.amount ?? 0), line.amount_unit) ||
+      0;
 
     return {
       id: line.id,
@@ -68,7 +107,7 @@ export const calculateBatchCost = (recipeIngredients: RecipeIngredient[]) =>
 
 export const recipeYieldInGallons = (recipe: Pick<Recipe, 'yield_amount' | 'yield_unit'>) => {
   const amount = Number(recipe.yield_amount ?? 0);
-  const unit = recipe.yield_unit?.trim().toLowerCase();
+  const unit = normalizeUnit(recipe.yield_unit);
 
   if (!amount || !unit) return null;
 

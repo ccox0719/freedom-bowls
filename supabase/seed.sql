@@ -172,10 +172,10 @@ converted_lines as (
       case lower(raw_lines.amount_unit)
         when 'lb' then 453.59237
         when 'gallon' then 3785.41178
-        when 'quarts' then 960
-        when 'cups' then 240
-        when 'tbsp' then 15
-        when 'tsp' then 5
+        when 'quarts' then 946.352946
+        when 'cups' then 236.5882365
+        when 'tbsp' then 14.7867648
+        when 'tsp' then 4.92892159
         when 'whole' then 100
         when 'bunches' then 50
         when 'cloves' then 5
